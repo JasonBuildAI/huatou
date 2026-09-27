@@ -88,3 +88,27 @@ def test_the_floor_keeps_no_time_of_its_own():
     assert floor.arm_after(state, channel=Channel.TEXT) == pytest.approx(10.0)
     clock.now = 1005.0
     assert floor.arm_after(state, channel=Channel.TEXT) == pytest.approx(5.0)
+
+# ---------------------------------------------------------------- 状态推进
+def test_the_user_speaking_clears_everything_and_rearms():
+    """用户真实说话是唯一能把这些一起清掉的信号。"""
+    floor, clock, _ = make_floor(now=2000.0)
+    state = State(streak=2, last_open_ts=1500.0, text_fired=True,
+                  waiting_user=True, her_ask_streak=2, recent_said=["说过的话"])
+    floor.note_user_spoke(state)
+
+    assert state.streak == 0
+    assert state.last_open_ts == 0.0
+    assert state.text_fired is False
+    assert state.waiting_user is False
+    assert state.her_ask_streak == 0
+    assert state.last_activity_ts == 2000.0, "沉默从「他刚说完」重新算起"
+    assert state.recent_said == ["说过的话"], "他说过话不代表她没说过那几句"
+
+
+def test_note_star_timestamps_can_be_given_explicitly():
+    """时间戳也能由宿主递进来 —— 假时钟之外的第二条确定性路子。"""
+    floor, _, _ = make_floor(now=2000.0)
+    state = State()
+    floor.note_user_spoke(state, now=1234.5)
+    assert state.last_activity_ts == 1234.5
