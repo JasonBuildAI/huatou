@@ -192,3 +192,13 @@ def test_the_privacy_guard_is_falsifiable(tmp_path):
     (workspace / "README.md").write_text(f"# {name}\n", encoding="utf-8")
     done = run_pytest(workspace, "tests/test_privacy.py")
     assert done.returncode != 0, "名字写回来了，隐私护栏居然没红"
+
+
+def test_the_zero_dependency_guard_is_falsifiable(tmp_path):
+    """包里混进一个第三方 import，零依赖护栏必须红（硬约束 1）。"""
+    workspace = prepare(tmp_path, tests=["test_zero_deps.py"])
+    mutate(workspace, "huatou/__init__.py",
+           "from .dials import Dials\n",
+           "import pytest\nfrom .dials import Dials\n")
+    done = run_pytest(workspace, "tests/test_zero_deps.py")
+    assert done.returncode != 0, "第三方 import 混进来了，护栏居然没红"
