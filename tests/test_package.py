@@ -16,3 +16,18 @@ def test_imports_the_working_copy_not_an_installed_copy():
     """测试跑的必须是工作区这一份 —— 否则改代码不生效，红绿都是假的。"""
     here = Path(__file__).resolve().parent.parent / "huatou"
     assert Path(huatou.__file__).resolve().parent == here
+
+def test_the_facade_exports_the_five_public_names():
+    """`import huatou` 之后的五个门面名字 —— 宿主只认它们。"""
+    import huatou
+    from huatou.dials import Dials
+    from huatou.floor import Floor
+    from huatou.types import Channel, State, Verdict
+
+    assert huatou.Floor is Floor
+    assert huatou.Dials is Dials
+    assert huatou.Channel is Channel
+    assert huatou.State is State
+    assert huatou.Verdict is Verdict
+    assert set(huatou.__all__) == {"Channel", "Dials", "Floor", "State",
+                                   "Verdict", "__version__"}
