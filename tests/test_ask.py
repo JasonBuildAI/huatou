@@ -140,3 +140,23 @@ REAL_MACHINE_SENTENCES = [
 @pytest.mark.parametrize("text", REAL_MACHINE_SENTENCES)
 def test_every_real_machine_sentence_is_recognized(text):
     assert asks_the_user(text)
+
+def test_the_known_false_positive_is_accepted_on_purpose():
+    """带「谁」的**陈述**也会被算成问句 —— 这是算过账之后选择认下的。
+
+    漏掉她（她继续追问）比误认她（停下来等）更贵：后者的代价是「她少问一句」，
+    前者的代价是「她替他把答案说了」。这笔不对称的账写在 docs/rules.md §1.3，
+    回改这一条之前先去读它。
+    """
+    assert asks_the_user("我实习的画廊也是，谁跟谁好一眼看出来")
+
+
+@pytest.mark.parametrize("text,why", [
+    ("今天过得还不错哦", "「哦」不收：会与陈述句大量混淆，没有语料证据"),
+    ("这事儿我做几遍了", "「几遍 / 几次」没有跟着「几天」放宽"),
+    ("躺着一般干嘛呀", "「干嘛」刻意不收：会把她自己后面的话吃掉"),
+    ("先歇会儿吧", "软档收口的语气词要句中有第二人称才算 —— 这条没有"),
+])
+def test_the_deliberate_gaps(text, why):
+    """四处刻意不放宽的形状，改动这一档时它们会先红。"""
+    assert not asks_the_user(text), why
