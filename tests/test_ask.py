@@ -133,7 +133,7 @@ REAL_MACHINE_SENTENCES = [
     "你们宿舍一般谁先开口挑明",
     "验收前还要改几天呀",                                 # 2026-09-23 晚
     "这个项目还要熬几天",
-    "我实习的画廊也是，谁跟谁好一眼看出来",                 # 已知误认，见下一条用例
+    "我实习的公司也是，谁跟谁好一眼看出来",                 # 已知误认，见下一条用例
 ]
 
 
@@ -148,7 +148,7 @@ def test_the_known_false_positive_is_accepted_on_purpose():
     前者的代价是「她替他把答案说了」。这笔不对称的账写在 docs/rules.md §1.3，
     回改这一条之前先去读它。
     """
-    assert asks_the_user("我实习的画廊也是，谁跟谁好一眼看出来")
+    assert asks_the_user("我实习的公司也是，谁跟谁好一眼看出来")
 
 
 @pytest.mark.parametrize("text,why", [

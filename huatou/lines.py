@@ -21,7 +21,7 @@ __all__ = [
     "said_sentences",
 ]
 
-# 空转黑名单（24 条纯问候 / 空开场）。判据是**整句相等**：「你好呀，今天画室特别安静……」
+# 空转黑名单（24 条纯问候 / 空开场）。判据是**整句相等**：「你好呀，今天楼下特别安静……」
 # 不算 —— 那是真的在说话。来历是反馈 6：用户原话是「不要频繁地说什么无意义的
 # 『你好』『你好』」——一句「你好」把「她想起你了」变成了「她只会打招呼」。
 _EMPTY_OPENERS = (
@@ -136,7 +136,7 @@ def line_rejected(state: State, line: str, *, dials: Dials, split_sentences,
     if not plain:
         return "not_a_line"      # 纯标点 / 表情：不是话
     if plain in _EMPTY_OPENERS_PLAIN:
-        # 整句相等才挡：「你好呀，今天画室特别安静……」不算，那是真的在说话。
+        # 整句相等才挡：「你好呀，今天楼下特别安静……」不算，那是真的在说话。
         return "empty_opener"
     if is_banned_line(first, banned_lines_with(banned_lines)):
         return "banned_line"

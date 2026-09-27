@@ -73,12 +73,12 @@ def test_the_blacklist_compares_after_normalizing(line):
 
 
 def test_a_greeting_that_keeps_talking_is_not_empty():
-    """整句相等才算 ——「你好呀，今天画室特别安静……」是她在真的说话。"""
-    assert check("你好呀，今天画室特别安静……") == ""
+    """整句相等才算 ——「你好呀，今天楼下特别安静……」是她在真的说话。"""
+    assert check("你好呀，今天楼下特别安静……") == ""
 
 def test_only_the_first_sentence_is_judged():
     """后面几条是她展开的内容 —— 拿黑名单去卡会把真的关心话误伤。"""
-    assert check("你好。今天画室特别安静……") == "empty_opener"
+    assert check("你好。今天楼下特别安静……") == "empty_opener"
     assert check("今天画了五版，手都酸了。你还好吗？") == ""
 
 
@@ -110,7 +110,7 @@ def test_a_half_sentence_hidden_in_an_earlier_message_is_still_a_repeat():
     历史里一条消息常常挤着好几句，而这一次要出口的是切句之后的一句 ——
     整条对一句永远对不上，所以两边都要过同一个切句器。
     """
-    history = "上午在画廊，下午补了张小稿。今天就躺着没起来。"
+    history = "上午在公司，下午改了一版。今天就躺着没起来。"
     state = State(recent_said=[history])
     assert check("今天就躺着没起来", state=state) == "repeat"
     assert check("今天就躺着没起来。", state=state) == "repeat"
