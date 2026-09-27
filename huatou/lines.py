@@ -126,11 +126,16 @@ def line_rejected(state: State, line: str, *, dials: Dials, split_sentences,
 
     回理由而不是布尔，与 `Verdict` 是同一个理由：面板上要能写出「她为什么说不出话」。
     顺序按从便宜到贵：不是话 → 空转名单 → 禁用句 → 逐字重复。
+
+    禁用句那条也**只判第一句**：她开口先说「你怎么不理我」、后面再补一句家常，
+    读起来仍然是那三句里的一句在指责他，不能因为后半句让她溜过去。
+    切句器坏了时 `first_sentence` 退回整条，这条判据跟着退回整条 —— 失败姿态是收紧。
     """
-    plain = plain_text(first_sentence(split_sentences, line))
+    first = first_sentence(split_sentences, line)
+    plain = plain_text(first)
     if not plain:
         return "not_a_line"      # 纯标点 / 表情：不是话
-    if is_banned_line(line, banned_lines_with(banned_lines)):
+    if is_banned_line(first, banned_lines_with(banned_lines)):
         return "banned_line"
     if plain in _EMPTY_OPENERS_PLAIN:
         # 整句相等才挡：「你好呀，今天画室特别安静……」不算，那是真的在说话。

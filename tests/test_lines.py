@@ -167,3 +167,9 @@ def test_a_host_can_add_its_own_banned_lines():
 def test_the_banned_list_does_not_swallow_neighbours():
     """只有整句命中才挡：「你别不理我，我就是顺口一问」是正常在说话。"""
     assert check("你别不理我，我就是顺口一问") == ""
+
+
+def test_the_banned_list_also_only_judges_the_first_sentence():
+    """「你怎么不理我」在第一批里，就是它在指责他 —— 后半句补什么都不能放行。"""
+    assert check("你怎么不理我。今天有点累") == "banned_line"
+    assert check("你都不睬我。我先去画两笔。") == "banned_line"
