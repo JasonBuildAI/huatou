@@ -13,7 +13,20 @@ from .dials import Dials
 from .protocols import MaterialProbe
 from .types import Channel, State, Verdict
 
-__all__ = ["may_open"]
+__all__ = ["may_open", "quiet_sec"]
+
+
+def quiet_sec(state: State, now: float) -> "float | None":
+    """从最后一次活动到现在安静了多久；还没有活动记录时返回 None。
+
+    None 的意思是「这件事归布防侧管」：一个新会话在页面打开之前没有任何活动时间，
+    服务端不假装知道它已经安静了多久（`docs/rules.md` §3.1）。
+    一旦宿主记过活动时间（任何一个 `note_*` 都会记），这一档就是服务端的兜底。
+    """
+    ts = float(state.last_activity_ts or 0.0)
+    if ts <= 0.0:
+        return None
+    return max(0.0, float(now) - ts)
 
 
 def may_open(state: State, *, channel: "Channel | str", now: float,
@@ -32,4 +45,7 @@ def may_open(state: State, *, channel: "Channel | str", now: float,
         return Verdict.deny("text_fired", "文字端这一回合已经主动挑过一次")
     if int(state.streak or 0) >= int(dials.max_streak):
         return Verdict.deny("max_streak", "试过了，等他开口（终局语义）")
+    quiet = quiet_sec(state, now)
+    if quiet is not None and quiet < float(dials.open_sec(channel)):
+        return Verdict.deny("quiet", "还安静得不够：再等等")
     return Verdict.allow()

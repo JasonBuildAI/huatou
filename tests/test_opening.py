@@ -65,3 +65,24 @@ def test_the_streak_limit_is_terminal_until_he_speaks():
 def test_a_bigger_limit_lets_her_try_more():
     """上限现读：同一条状态，宿主把 max_streak 调大就放行（硬约束 5）。"""
     assert check(State(streak=3), dials=Dials(max_streak=4)).allowed
+
+def test_not_quiet_enough_blocks_when_the_host_recorded_activity():
+    """假时钟钉死这一档：9.9 秒不放行、10.1 秒放行。"""
+    dials = Dials(open_text_sec=10)
+    state = State(last_activity_ts=1000.0)
+
+    denied = check(state, now=1009.9, dials=dials)
+    assert not denied.allowed and denied.reason == "quiet"
+    assert check(state, now=1010.1, dials=dials).allowed
+
+
+def test_without_an_activity_record_the_quiet_gate_stays_out_of_the_way():
+    """没有活动时间戳时，沉默归布防侧管 —— 服务端不假装知道。"""
+    assert check(State(), now=0.0).allowed
+
+
+def test_the_quiet_threshold_follows_the_channel():
+    dials = Dials(open_call_sec=4)
+    state = State(last_activity_ts=1000.0)
+    assert check(state, channel=Channel.CALL, now=1003.9, dials=dials).reason == "quiet"
+    assert check(state, channel=Channel.CALL, now=1004.1, dials=dials).allowed
