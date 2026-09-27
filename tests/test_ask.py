@@ -71,3 +71,24 @@ def test_shape_3_a_ma_in_the_middle_counts_too():
 def test_shape_3_does_not_stretch_to_a_middle_me(text):
     """「么」不跟着放宽：它在「这么 / 那么 / 多么」里长着。"""
     assert not asks_the_user(text)
+
+@pytest.mark.parametrize("text", [
+    "你到宿舍了没",                              # 真机三句
+    "那起来之后吃了东西没",
+    "你今天坐了那么久地铁到家了没",
+    "他吃饭了没。",                              # 收口处缀个句号，也要认
+])
+def test_shape_4_a_not_a_tail(text):
+    assert asks_the_user(text)
+
+
+@pytest.mark.parametrize("text", [
+    "还没",
+    "没有",
+    "我也没",
+    "都没有",
+    "还不确定",
+])
+def test_shape_4_bare_mei_is_his_own_answer(text):
+    """光一个「没」是他的回答；这一档要的是「垫了个成分、落在裸没上」。"""
+    assert not asks_the_user(text)

@@ -34,6 +34,16 @@ _Q_WORD = re.compile(
 # 「这么 / 那么 / 多么」里，量过语料一条都没多认（`docs/rules.md` §1.2）。
 _MA_ANYWHERE = "吗"
 
+# 收口处的杂音：引号、括号、句末标点、空白都不算句子的一部分 —— 判「收口在哪」
+# 之前先削掉它们，否则「你到宿舍了没。」会差一个字符。
+_TAIL_PUNCT = re.compile(r"[”\"'’）)】\]》」』。！!…~～\s]+$")
+
+# 第四种形状：**A 不 A**，收口在一个裸「没」上。真机语料里她这一档只有三句
+# （「你到宿舍了没」「那起来之后吃了东西没」「你今天坐了那么久地铁到家了没」），
+# 全部在问他。问句前面一定垫着一个成分；光一个「没」或「还没」是他的回答，
+# 不在这一档 —— 所以否定前缀（还不也都没）要挡住。
+_A_NOT_A_TAIL = re.compile(r"(?<![还不也都没])没$")
+
 def ends_with_question(s: str) -> bool:
     """这一段是不是以问号收口（尾部引号 / 括号不算数）。"""
     return bool(_QUESTION_TAIL.search(str(s or "").strip()))
@@ -49,4 +59,6 @@ def asks_the_user(s: str) -> bool:
         return True
     if _Q_WORD.search(t):
         return True
-    return _MA_ANYWHERE in t
+    if _MA_ANYWHERE in t:
+        return True
+    return bool(_A_NOT_A_TAIL.search(_TAIL_PUNCT.sub("", t)))
