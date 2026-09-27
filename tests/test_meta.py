@@ -97,3 +97,17 @@ def test_the_material_gate_is_falsifiable(tmp_path):
            "        material_ready = True\n")
     done = run_pytest(workspace, "tests/test_opening.py")
     assert done.returncode != 0, "内容闸被架空了，默认档居然没红"
+
+
+def test_the_question_shapes_are_falsifiable(tmp_path):
+    """去掉「句中吗」这一种形状（换成永不出现的字符），默认档必须红。
+
+    真机那句「…坐了很久地铁吗，现在到哪了」只认这一档 —— 收口是「到哪了」，
+    问号档与收口档都接不住它（`rules.md` §1 第 3 条）。
+    """
+    workspace = prepare(tmp_path, tests=["test_ask.py"])
+    mutate(workspace, "huatou/ask.py",
+           '_MA_ANYWHERE = "吗"\n',
+           '_MA_ANYWHERE = "\\x00"\n')
+    done = run_pytest(workspace, "tests/test_ask.py")
+    assert done.returncode != 0, "少了一种问句形状，默认档居然没红"
