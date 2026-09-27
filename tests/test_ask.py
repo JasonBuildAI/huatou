@@ -119,3 +119,24 @@ def test_shape_6_soft_particles_need_a_second_person(text):
 def test_shape_6_without_a_second_person_it_is_not_a_question(text):
     """没有第二人称的「吧呢呀啊呗嘛」是叮嘱 / 自言自语，不是问他。"""
     assert not asks_the_user(text)
+
+# 「全部真机句子」这一张表是这条判据的证据库：docs/rules.md §1 里出现的句子，
+# 一条都不许漏。加形状的时候先往这里加一行，再改正则。
+REAL_MACHINE_SENTENCES = [
+    "最近怎么了呀",                                       # 2026-09-23 通话
+    "还没哦，画到一半。你呢，今天不是坐了很久地铁吗，现在到哪了",  # 2026-09-23 23:04
+    "你到宿舍了没",                                       # 2026-09-23 A 不 A 三句
+    "那起来之后吃了东西没",
+    "你今天坐了那么久地铁到家了没",
+    "你不是说这几天要调养嘛",                             # 2026-09-23 软档
+    "你们宿舍现在还剩几个能一块吃饭的",                    # 2026-09-23 判定式评测
+    "你们宿舍一般谁先开口挑明",
+    "验收前还要改几天呀",                                 # 2026-09-23 晚
+    "这个项目还要熬几天",
+    "我实习的画廊也是，谁跟谁好一眼看出来",                 # 已知误认，见下一条用例
+]
+
+
+@pytest.mark.parametrize("text", REAL_MACHINE_SENTENCES)
+def test_every_real_machine_sentence_is_recognized(text):
+    assert asks_the_user(text)
