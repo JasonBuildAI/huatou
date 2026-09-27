@@ -87,3 +87,13 @@ def test_the_waiting_user_gate_is_falsifiable(tmp_path):
            '        return Verdict.deny("waiting_user", "她问过，还没等到他真实开口")\n')
     done = run_pytest(workspace, "tests/test_opening.py")
     assert done.returncode != 0, "关掉这一道闸，默认档居然没红"
+
+
+def test_the_material_gate_is_falsifiable(tmp_path):
+    """内容闸恒真（等于不查库），默认档必须红 —— 没料就不开口（§2 第 7 道）。"""
+    workspace = prepare(tmp_path, tests=["test_opening.py"])
+    mutate(workspace, "huatou/opening.py",
+           "        material_ready = bool(material.has_material())\n",
+           "        material_ready = True\n")
+    done = run_pytest(workspace, "tests/test_opening.py")
+    assert done.returncode != 0, "内容闸被架空了，默认档居然没红"
