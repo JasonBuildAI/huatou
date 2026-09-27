@@ -23,8 +23,8 @@ testpaths = ["tests"]
 # （本机装的 hydra_pytest 缺依赖、langsmith_plugin 版本不符）。按名字屏蔽在没装它们
 # 的机器上是空操作，所以它既救本机也不影响 CI —— 换机时把这一行删掉再跑一遍。
 addopts = '-p no:hydra_pytest -p no:langsmith_plugin -m "not meta"'
-# 默认档不选元档，也不会为它多付那几秒。《最后的 -m》是命令行显式给的，
-# 它会覆盖上面那一句，所以 `python -m pytest -m meta` 照样只跑元档。
+# 默认档不选元档，也不会为它多付那几秒。命令行里显式写的 `-m` 排在它后面，
+# 会把上面那一句盖掉 —— 所以 `python -m pytest -m meta` 照样只跑元档。
 markers = [
     "meta: 元档 —— 证明每条判据都能红；默认档不选它，`python -m pytest -m meta` 才跑",
 ]

@@ -54,7 +54,7 @@ examples/   # companion.py 假宿主示范（python -m huatou demo 跑的就是�
 
 - 核心零第三方依赖：`import huatou` 不许把任何非标准库模块带进 `sys.modules`。
 - 阈值只有一张表（`Dials`），**调用时现读**，不在导入期快照成模块常量。
-- 判定是纯函数、只读状态；改写状态只有 `note_*` 四个入口（跑题测试见
+- 判定是纯函数、只读状态；改写状态只有 `note_*` 四个入口（那条分工的测试在
   `tests/test_floor_api.py`：判定跑完，状态的 `to_dict()` 逐字不变）。
 - 包内部不读环境变量：配置由宿主组装成 `Dials` 传进来（`tests/test_no_env.py`）。
 - 源产品的角色名、产品名与身份词不出现在本仓库里：违规名单以码点存表，
