@@ -55,6 +55,14 @@ def may_open(state: State, *, channel: "Channel | str", now: float,
     # 内容闸：唯一要读库的一道，所以必须最后一个跑（硬约束 4）。手里一点素材都
     # 没有时她「起个头」只能靠编，而用户读到的就是「她说的话跟我完全无关」——
     # 没料就不开口，比硬找一句话说不强。
-    if not bool(material.has_material()):
+    try:
+        material_ready = bool(material.has_material())
+    except Exception as exc:                      # noqa: BLE001
+        # 任何内部异常都退化成「这次不开口」——沉默是唯一允许的失败姿态
+        # （宁可少说一句，不可胡说一句），但不能静默：理由串必须答得出
+        # 「她为什么没开口」。与源系统的取向相反（那边探针坏了就放行），
+        # 这笔差异记在 docs/rules.md §2.2。
+        return Verdict.deny("material_error", f"材料探针抛了异常：{exc!r}")
+    if not material_ready:
         return Verdict.deny("no_material", "手里一点素材都没有：这次不开口，等他先说")
     return Verdict.allow()

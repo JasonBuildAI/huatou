@@ -122,3 +122,11 @@ def test_no_material_means_no_opening():
     full = Probe(material=True)
     assert check(probe=full).allowed
     assert (empty.calls, full.calls) == (1, 1), "放行与不放行各查一次库，不多查"
+
+def test_a_broken_probe_degrades_to_silence_but_says_why():
+    """探针坏了：这次不开口，但理由串要把「为什么」答出来，不许静默。"""
+    boom = Probe(error=RuntimeError("库打不开"))
+    denied = check(probe=boom)
+    assert not denied.allowed and denied.reason == "material_error"
+    assert "库打不开" in denied.detail
+    assert boom.calls == 1
