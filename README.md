@@ -41,6 +41,15 @@ python -m huatou demo       # 跑一遍假宿主的完整状态机（examples/co
 必须变红**（`docs/design.md` §8 的第二条硬验收）。这条红不了，说明那一档
 没有能失败的用例在看着它。
 
+## 目录
+
+```
+huatou/     # 库本身：types / dials / protocols / ask / opening / handback / lines / floor
+tests/      # 默认档 + 元档（test_meta.py）+ 隐私护栏（test_privacy.py）
+docs/       # design.md 设计真源 / rules.md 判据表 / integration.md 宿主接法
+examples/   # companion.py 假宿主示范（python -m huatou demo 跑的就是它）
+```
+
 ## 三条立库时的约定
 
 - 核心零第三方依赖：`import huatou` 不许把任何非标准库模块带进 `sys.modules`。
