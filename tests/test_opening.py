@@ -204,8 +204,13 @@ def test_arm_after_says_do_not_arm(state, dials, channel):
     assert arm_after(state, channel=channel, now=1000.0, dials=dials) is None
 
 
-def test_arm_after_does_not_ask_the_material_probe():
-    """布防是廉价操作：它不该开库 —— 内容闸留给放行那一侧。"""
+def test_arming_is_cheap_and_the_library_is_only_opened_on_the_decision():
+    """布防不开库；等到真的问「放不放行」时才查一次。"""
     probe = Probe()
-    arm_after(State(), channel=Channel.TEXT, now=0.0, dials=Dials())
-    assert probe.calls == 0
+    state = State(last_activity_ts=1000.0)
+    assert arm_after(state, channel=Channel.TEXT, now=1010.0, dials=Dials()) == 0.0
+    assert probe.calls == 0, "挂一次表就要开一次库的话，宿主每回合都在读库"
+
+    assert may_open(state, channel=Channel.TEXT, now=1010.0,
+                    dials=Dials(), material=probe).allowed
+    assert probe.calls == 1
