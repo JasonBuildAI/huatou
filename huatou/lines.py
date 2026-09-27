@@ -31,12 +31,20 @@ def plain_text(text: str) -> str:
     不归一化的话，模型在尾巴上加个标点就绕过去了。
     """
     return re.sub(r"[\W_]+", "", str(text or "")).lower()
+# 名单按归一化后的形状比对：模型在尾巴上加了标点也绕不过去。
+_EMPTY_OPENERS_PLAIN = frozenset(plain_text(x) for x in _EMPTY_OPENERS)
+
+
 def line_rejected(state: State, line: str, *, dials: Dials, split_sentences) -> str:
     """这一句能不能出口：返回**理由串**，空串 = 放行。
 
     回理由而不是布尔，与 `Verdict` 是同一个理由：面板上要能写出「她为什么说不出话」。
     顺序按从便宜到贵：不是话 → 空转名单 → 禁用句 → 逐字重复。
     """
-    if not plain_text(line):
+    plain = plain_text(line)
+    if not plain:
         return "not_a_line"      # 纯标点 / 表情：不是话
+    if plain in _EMPTY_OPENERS_PLAIN:
+        # 整句相等才挡：「你好呀，今天画室特别安静……」不算，那是真的在说话。
+        return "empty_opener"
     return ""
