@@ -44,6 +44,17 @@ _TAIL_PUNCT = re.compile(r"[”\"'’）)】\]》」』。！!…~～\s]+$")
 # 不在这一档 —— 所以否定前缀（还不也都没）要挡住。
 _A_NOT_A_TAIL = re.compile(r"(?<![还不也都没])没$")
 
+# 第五 / 第六种形状：收口的语气词，分两档。
+#   硬档「吗」「么」：它们本身就把句子变成问句（「吗」上一格已经接住，这里管「么」）。
+#   软档「吧呢呀啊呗嘛」：得靠句中的第二人称才认 ——「那就快去睡吧」没有第二人称，
+#   那是叮嘱不是问句。「嘛」与「吗」同族，但它还兼着「快来嘛」这种撒娇 / 催促，
+#   所以跟软档走：真机那串自问自答里的「你不是说这几天要调养嘛」正是靠这一档认出来的。
+# 认错与认漏的代价不对等，这一档偏保守：认错（把招呼、道谢认成问句）只是让她少说一句，
+# 认漏就是她替他把答案说了。账在 docs/rules.md §1.3。
+_ASK_PARTICLE_HARD = "吗么"
+_ASK_PARTICLE_SOFT = "吧呢呀啊呗嘛"
+_SECOND_PERSON = ("你", "您", "咱")
+
 def ends_with_question(s: str) -> bool:
     """这一段是不是以问号收口（尾部引号 / 括号不算数）。"""
     return bool(_QUESTION_TAIL.search(str(s or "").strip()))
@@ -61,4 +72,12 @@ def asks_the_user(s: str) -> bool:
         return True
     if _MA_ANYWHERE in t:
         return True
-    return bool(_A_NOT_A_TAIL.search(_TAIL_PUNCT.sub("", t)))
+    body = _TAIL_PUNCT.sub("", t)
+    if _A_NOT_A_TAIL.search(body):
+        return True
+    last = body[-1:]
+    if not last:
+        return False
+    if last in _ASK_PARTICLE_HARD:
+        return True
+    return last in _ASK_PARTICLE_SOFT and any(c in t for c in _SECOND_PERSON)

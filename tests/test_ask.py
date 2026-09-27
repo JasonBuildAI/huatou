@@ -92,3 +92,30 @@ def test_shape_4_a_not_a_tail(text):
 def test_shape_4_bare_mei_is_his_own_answer(text):
     """光一个「没」是他的回答；这一档要的是「垫了个成分、落在裸没上」。"""
     assert not asks_the_user(text)
+
+@pytest.mark.parametrize("text", [
+    "到家了么",
+    "他今天来么",
+])
+def test_shape_5_hard_particles_make_it_a_question(text):
+    assert asks_the_user(text)
+
+
+@pytest.mark.parametrize("text", [
+    "你不是说这几天要调养嘛",      # 真机：靠软档 + 第二人称认出来的那一句
+    "你今天到得挺早呀",
+    "这事儿你还没听说呗",
+])
+def test_shape_6_soft_particles_need_a_second_person(text):
+    assert asks_the_user(text)
+
+
+@pytest.mark.parametrize("text", [
+    "那就快去睡吧",
+    "早点休息吧",
+    "快来嘛",
+    "我先去忙了啊",
+])
+def test_shape_6_without_a_second_person_it_is_not_a_question(text):
+    """没有第二人称的「吧呢呀啊呗嘛」是叮嘱 / 自言自语，不是问他。"""
+    assert not asks_the_user(text)
