@@ -314,3 +314,24 @@ her_ask(asked) 她这一轮出稿里有没有在问他                → her_as
 状态要能 `to_dict()` / `from_dict()`：用户刷新页面后，**已经用掉的机会**
 与「问后等待」都从状态里读回来，不因刷新重新布防 —— 否则刷一下就能骗她再问一次。
 不能序列化的状态等于「刷新就重新布防」，而那是一条能被用户利用的漏洞。
+---
+
+## §7 十二条硬约束落在哪、怎么验
+
+`design.md` §6 要求每条硬约束都以「代码 + 一条能失败的测试 + docs 里的理由」
+三件套落地。这一节就是那张对照表。
+
+| # | 硬约束 | 落点 | 怎么验 |
+|---|---|---|---|
+| 1 | 核心零第三方依赖 | 整个 `huatou/` 只 import 标准库 | `tests/test_zero_deps.py`：干净子进程里对比 `import huatou` 前后的 `sys.modules` 差集 |
+| 2 | 判定是纯函数 | `may_open` / `should_hand_back` 收 `now` 与 rng，函数体内不取时间 | `tests/test_opening.py`：假时钟钉死 9.9 秒不放行、10.1 秒放行 |
+| 3 | 判定与推进分离 | 判定只读 `State`；改写只有 `note_*` | `tests/test_floor_api.py`：判定跑完，状态的 `to_dict()` 逐字不变 |
+| 4 | 判据按从便宜到贵、内容闸最后 | `huatou/opening.py` 的判定顺序 | `tests/test_opening.py`：前面任一道挡住时，探针一次都不许被调用 |
+| 5 | 阈值只有一张表、调用时现读 | `huatou/dials.py` | `tests/test_dials.py`：同一份状态，改 `Dials` 之后下一次判定就跟着变 |
+| 6 | 状态可序列化 | `State.to_dict` / `State.from_dict` | `tests/test_state.py`：往返不丢字段，且刷新的两笔状态读得回来 |
+| 7 | 异常退化成「这次不开口」但不静默 | `may_open` / `should_hand_back` 内部的兜底 | `tests/test_opening.py` 的 `material_error`；`tests/test_handback.py` 的 rng 抛错 |
+| 8 | 判据的检测模式自备一份 | `huatou/ask.py` 自带全部正则 | 代码审查：`huatou/` 不 import 任何表达层实现 |
+| 9 | 逐字重复按句比、同一个切句器 | `huatou/lines.py` 走注入的 `SentenceSplitter` | `tests/test_lines.py`：同一句话分在两条不同消息里也要认出来 |
+| 10 | 不对称的账写下来 | `docs/rules.md` §1.3 | 这一节自己 |
+| 11 | 反向用例必须能真的红 | `tests/test_meta.py` | 元档：把实现改坏，默认档必须变红（起子进程跑真 pytest） |
+| 12 | 不许内部读环境变量 | `huatou/` 里没有 `os.environ` / `getenv` | `tests/test_no_env.py`：扫源码 |
