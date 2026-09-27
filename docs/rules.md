@@ -309,6 +309,9 @@ her_ask(asked) 她这一轮出稿里有没有在问他                → her_as
 坏值（类型不对、越界）与未知键一律按同一取向处理：取默认、忽略多余的键，
 绝不因为状态读不懂就永久关掉某项能力。
 
+老宿主那套键名（`proactive_streak` / `proactive_last_ts` / `proactive_text_fired` /
+`proactive_waiting_user`）在 `from_dict` 里认，作为迁移期的替身：新键在场时以新键为准。
+让宿主自己写一层映射也可以，但映射写错的症状是「她已经问过、她还在问」，很难查。
 ### §6.5 刷新继承
 
 状态要能 `to_dict()` / `from_dict()`：用户刷新页面后，**已经用掉的机会**

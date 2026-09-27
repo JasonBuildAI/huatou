@@ -135,3 +135,20 @@ def test_new_field_wins_over_the_old_boolean():
     from huatou.types import State
 
     assert State.from_dict({"her_ask_streak": 2, "last_her_ask": True}).her_ask_streak == 2
+
+def test_from_dict_reads_the_old_host_key_names_too():
+    """迁移期：老会话文件里的键名直接倒进来也能读，宿主不必自己写一层映射。"""
+    from huatou.types import State
+
+    s = State.from_dict({"proactive_streak": 2, "proactive_last_ts": 100.0,
+                         "proactive_text_fired": True,
+                         "proactive_waiting_user": True})
+    assert (s.streak, s.last_open_ts) == (2, 100.0)
+    assert s.text_fired and s.waiting_user
+
+
+def test_new_key_names_win_over_the_old_ones():
+    from huatou.types import State
+
+    s = State.from_dict({"streak": 1, "proactive_streak": 9})
+    assert s.streak == 1

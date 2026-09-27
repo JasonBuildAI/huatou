@@ -110,13 +110,13 @@ class State:
         """
         raw = data if isinstance(data, dict) else {}
         state = cls()
-        state.streak = _as_int(raw.get("streak"), 0)
-        state.last_open_ts = _as_float(raw.get("last_open_ts"), 0.0)
-        state.text_fired = _as_bool(raw.get("text_fired"), False)
-        state.waiting_user = _as_bool(raw.get("waiting_user"), False)
-        state.her_ask_streak = _as_int(raw.get("her_ask_streak"), 0)
-        state.recent_said = _as_str_list(raw.get("recent_said"))
-        state.last_activity_ts = _as_float(raw.get("last_activity_ts"), 0.0)
+        state.streak = _as_int(_pick(raw, "streak"), 0)
+        state.last_open_ts = _as_float(_pick(raw, "last_open_ts"), 0.0)
+        state.text_fired = _as_bool(_pick(raw, "text_fired"), False)
+        state.waiting_user = _as_bool(_pick(raw, "waiting_user"), False)
+        state.her_ask_streak = _as_int(_pick(raw, "her_ask_streak"), 0)
+        state.recent_said = _as_str_list(_pick(raw, "recent_said"))
+        state.last_activity_ts = _as_float(_pick(raw, "last_activity_ts"), 0.0)
         # 向前兼容：老状态里只有一个布尔量 `last_her_ask`，读成「连问了 1 轮」。
         # 落回之后她照样能被允许再问一轮；读不出来的字段让能力永远卡住，
         # 正是这份状态机最不该有的失败姿态（`docs/rules.md` §6.4）。
@@ -124,6 +124,23 @@ class State:
         if not state.her_ask_streak and _as_bool(raw.get("last_her_ask"), False):
             state.her_ask_streak = 1
         return state
+# 旧宿主的键名（迁移期替身）。宿主把老会话文件直接倒进 `State.from_dict` 也能跑，
+# 不必自己写一层映射 —— 映射写错的症状是「她已经问过，她还在问」，很难查。
+_LEGACY_KEYS = {
+    "streak": "proactive_streak",
+    "last_open_ts": "proactive_last_ts",
+    "text_fired": "proactive_text_fired",
+    "waiting_user": "proactive_waiting_user",
+}
+
+
+def _pick(raw: dict, key: str):
+    """先读本库的键；缺席时退回旧宿主的键名，两个都没有就是 None。"""
+    if raw.get(key) is not None:
+        return raw[key]
+    legacy = _LEGACY_KEYS.get(key)
+    return raw.get(legacy) if legacy else None
+
 def _as_int(value, default: int) -> int:
     try:
         return int(value)
