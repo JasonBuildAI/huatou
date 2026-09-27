@@ -26,4 +26,6 @@ def may_open(state: State, *, channel: "Channel | str", now: float,
     """
     if int(dials.max_streak or 0) <= 0:
         return Verdict.deny("disabled", "这个功能是关掉的：max_streak = 0")
+    if bool(state.waiting_user):
+        return Verdict.deny("waiting_user", "她问过，还没等到他真实开口")
     return Verdict.allow()

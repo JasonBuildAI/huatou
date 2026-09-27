@@ -40,3 +40,10 @@ def test_a_quiet_new_state_is_allowed():
     """刚开的新会话、什么都不挡时放行 —— 理由串照样是「ok」。"""
     v = check()
     assert v.allowed and v.reason == "ok"
+
+def test_waiting_for_him_blocks_the_next_open():
+    """她问过之后：没等到他真实开口就不再开口 —— 再定时追问像催促。"""
+    probe = Probe()
+    v = check(State(waiting_user=True), probe=probe)
+    assert not v.allowed and v.reason == "waiting_user"
+    assert probe.calls == 0
