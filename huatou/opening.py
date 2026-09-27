@@ -48,4 +48,8 @@ def may_open(state: State, *, channel: "Channel | str", now: float,
     quiet = quiet_sec(state, now)
     if quiet is not None and quiet < float(dials.open_sec(channel)):
         return Verdict.deny("quiet", "还安静得不够：再等等")
+    if float(now) - float(state.last_open_ts or 0.0) < float(dials.min_gap_sec):
+        return Verdict.deny("min_gap", "距上一次主动开口还不够久")
+    if float(now) - float(state.last_open_ts or 0.0) < float(dials.min_gap_sec):
+        return Verdict.deny("min_gap", "距上一次主动开口还不够久")
     return Verdict.allow()

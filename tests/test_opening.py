@@ -78,7 +78,7 @@ def test_not_quiet_enough_blocks_when_the_host_recorded_activity():
 
 def test_without_an_activity_record_the_quiet_gate_stays_out_of_the_way():
     """没有活动时间戳时，沉默归布防侧管 —— 服务端不假装知道。"""
-    assert check(State(), now=0.0).allowed
+    assert check(State()).allowed
 
 
 def test_the_quiet_threshold_follows_the_channel():
@@ -86,3 +86,29 @@ def test_the_quiet_threshold_follows_the_channel():
     state = State(last_activity_ts=1000.0)
     assert check(state, channel=Channel.CALL, now=1003.9, dials=dials).reason == "quiet"
     assert check(state, channel=Channel.CALL, now=1004.1, dials=dials).allowed
+
+def test_two_opens_must_be_far_enough_apart():
+    """两次主动之间至少隔 8 秒 —— 7.9 秒挡、8.1 秒放。"""
+    dials = Dials(min_gap_sec=8)
+    state = State(last_open_ts=1000.0)
+    assert check(state, now=1007.9, dials=dials).reason == "min_gap"
+    assert check(state, now=1008.1, dials=dials).allowed
+
+
+def test_the_gap_is_measured_from_the_last_open_not_from_now():
+    """锚点是「上一次主动开口」，不是「刚刚」—— 状态里那个时间戳说了算。"""
+    dials = Dials(min_gap_sec=8)
+    assert check(State(last_open_ts=0.0), now=1000.0, dials=dials).allowed
+
+def test_two_opens_must_be_far_enough_apart():
+    """两次主动之间至少隔 8 秒 —— 7.9 秒挡、8.1 秒放。"""
+    dials = Dials(min_gap_sec=8)
+    state = State(last_open_ts=1000.0)
+    assert check(state, now=1007.9, dials=dials).reason == "min_gap"
+    assert check(state, now=1008.1, dials=dials).allowed
+
+
+def test_the_gap_is_measured_from_the_last_open_not_from_now():
+    """锚点是「上一次主动开口」那个时间戳，不是「刚刚」。"""
+    dials = Dials(min_gap_sec=8)
+    assert check(State(last_open_ts=0.0), now=1000.0, dials=dials).allowed
