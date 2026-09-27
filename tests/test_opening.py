@@ -161,3 +161,51 @@ def test_the_content_gate_runs_only_when_everything_else_passed():
                  channel=Channel.TEXT, now=1100.0, dials=Dials(), material=probe)
     assert v.allowed
     assert probe.calls == 1
+
+# ---------------------------------------------------------------- 布防（arm_after）
+from huatou.opening import arm_after  # noqa: E402  —— 与上面同一批契约，读起来更顺
+
+
+def test_arm_after_returns_the_full_quiet_span_for_a_fresh_session():
+    """没有活动记录：从现在起算整段安静时长 —— 一个新会话要等满 10 秒。"""
+    assert arm_after(State(), channel=Channel.TEXT, now=500.0, dials=Dials()) == 10.0
+
+
+def test_arm_after_counts_down_mid_silence():
+    """安静了 9.9 秒：还差 0.1 秒；10.1 秒：现在就请求。"""
+    dials = Dials(open_text_sec=10)
+    state = State(last_activity_ts=1000.0)
+    assert arm_after(state, channel=Channel.TEXT, now=1009.9, dials=dials) == pytest.approx(0.1)
+    assert arm_after(state, channel=Channel.TEXT, now=1010.1, dials=dials) == 0.0
+
+
+def test_arm_after_follows_the_call_channel():
+    """通话档 4 秒就够长：同一个 now，文字档还在等、通话档已经可以请求。"""
+    state = State(last_activity_ts=1000.0)
+    assert arm_after(state, channel=Channel.CALL, now=1004.1, dials=Dials()) == 0.0
+    assert arm_after(state, channel=Channel.TEXT, now=1004.1, dials=Dials()) == pytest.approx(5.9)
+
+
+def test_arm_after_also_waits_out_the_minimum_gap():
+    """两个计时器取大者：安静够了，但距上一次主动开口还差 3 秒。"""
+    state = State(last_activity_ts=1000.0, last_open_ts=1005.0)
+    assert arm_after(state, channel=Channel.TEXT, now=1010.0,
+                     dials=Dials(min_gap_sec=8)) == pytest.approx(3.0)
+
+
+@pytest.mark.parametrize("state,dials,channel", [
+    (State(), Dials(max_streak=0), Channel.TEXT),
+    (State(waiting_user=True), Dials(), Channel.TEXT),
+    (State(text_fired=True), Dials(), Channel.TEXT),
+    (State(streak=2), Dials(), Channel.CALL),
+])
+def test_arm_after_says_do_not_arm(state, dials, channel):
+    """四种「现在别挂表」：关掉了、问后等待、文字端用过、到了终局。"""
+    assert arm_after(state, channel=channel, now=1000.0, dials=dials) is None
+
+
+def test_arm_after_does_not_ask_the_material_probe():
+    """布防是廉价操作：它不该开库 —— 内容闸留给放行那一侧。"""
+    probe = Probe()
+    arm_after(State(), channel=Channel.TEXT, now=0.0, dials=Dials())
+    assert probe.calls == 0

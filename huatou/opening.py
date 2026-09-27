@@ -13,7 +13,7 @@ from .dials import Dials
 from .protocols import MaterialProbe
 from .types import Channel, State, Verdict
 
-__all__ = ["may_open", "quiet_sec"]
+__all__ = ["arm_after", "may_open", "quiet_sec"]
 
 
 def quiet_sec(state: State, now: float) -> "float | None":
@@ -66,3 +66,27 @@ def may_open(state: State, *, channel: "Channel | str", now: float,
     if not material_ready:
         return Verdict.deny("no_material", "手里一点素材都没有：这次不开口，等他先说")
     return Verdict.allow()
+def arm_after(state: State, *, channel: "Channel | str", now: float,
+              dials: Dials) -> "float | None":
+    """从现在起还要安静多少秒才该请求一次主动开口；`None` = 不再布防。
+
+    `None` 有四种，对宿主是同一句话「现在别挂表」：功能关掉了、到了终局
+    （连试上限）、她问过还没等到回话、文字端这一回合已经用过。
+    后两种是**暂时**不合适 —— 下一次真实用户消息会重新布防。
+
+    它**不碰材料探针**：布防是廉价操作，每挂一次表都开一次库不值当；
+    内容闸留给 `may_open`（`docs/rules.md` §3.1）。
+    """
+    if int(dials.max_streak or 0) <= 0:
+        return None
+    if bool(state.waiting_user):
+        return None
+    if Channel.coerce(channel) is Channel.TEXT and bool(state.text_fired):
+        return None
+    if int(state.streak or 0) >= int(dials.max_streak):
+        return None
+    quiet = quiet_sec(state, now)
+    quiet_left = float(dials.open_sec(channel)) if quiet is None \
+        else float(dials.open_sec(channel)) - quiet
+    gap_left = float(state.last_open_ts or 0.0) + float(dials.min_gap_sec) - float(now)
+    return max(0.0, quiet_left, gap_left)
