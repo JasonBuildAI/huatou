@@ -135,11 +135,11 @@ def line_rejected(state: State, line: str, *, dials: Dials, split_sentences,
     plain = plain_text(first)
     if not plain:
         return "not_a_line"      # 纯标点 / 表情：不是话
-    if is_banned_line(first, banned_lines_with(banned_lines)):
-        return "banned_line"
     if plain in _EMPTY_OPENERS_PLAIN:
         # 整句相等才挡：「你好呀，今天画室特别安静……」不算，那是真的在说话。
         return "empty_opener"
+    if is_banned_line(first, banned_lines_with(banned_lines)):
+        return "banned_line"
     if repeats_recent(state, plain, dials=dials, split_sentences=split_sentences):
         # 逐字重复**按句比，不按条比**：历史里一条消息常常是好几句，而这里收到的
         # 是切句之后的一句。两边必须过同一个切句器 —— 注入而不是内置，

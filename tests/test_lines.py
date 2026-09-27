@@ -154,6 +154,20 @@ def test_the_banned_list_also_matches_after_normalizing(line):
     assert check(line) == "banned_line"
 
 
+def test_the_empty_opener_list_is_judged_before_the_banned_list():
+    """顺序本身就是判据（rules.md §5）：同一句同时命中两条时，报先判的那一条。
+
+    宿主把「早安」也加进禁用句表（它对这家宿主是硬禁令），理由串仍然是
+    `empty_opener` —— 空转名单先跑。
+    """
+    from huatou.lines import line_rejected
+
+    reason = line_rejected(State(), "早安", dials=Dials(),
+                           split_sentences=split_sentences,
+                           banned_lines=["早安"])
+    assert reason == "empty_opener"
+
+
 def test_a_host_can_add_its_own_banned_lines():
     from huatou.lines import line_rejected
 
