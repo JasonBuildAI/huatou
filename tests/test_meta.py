@@ -111,3 +111,13 @@ def test_the_question_shapes_are_falsifiable(tmp_path):
            '_MA_ANYWHERE = "\\x00"\n')
     done = run_pytest(workspace, "tests/test_ask.py")
     assert done.returncode != 0, "少了一种问句形状，默认档居然没红"
+
+
+def test_the_ask_streak_gate_is_falsifiable(tmp_path):
+    """连问闸被旁路，默认档必须红 —— 她会变成一台追问机（§4 第 2 道）。"""
+    workspace = prepare(tmp_path, tests=["test_handback.py"])
+    mutate(workspace, "huatou/handback.py",
+           "    if int(state.her_ask_streak or 0) >= int(dials.max_ask_streak):\n",
+           "    if False:\n")
+    done = run_pytest(workspace, "tests/test_handback.py")
+    assert done.returncode != 0, "连问闸被旁路，默认档居然没红"
