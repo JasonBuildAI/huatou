@@ -169,3 +169,14 @@ def test_the_cheap_before_expensive_order_is_falsifiable(tmp_path):
            "    if bool(state.waiting_user):\n")
     done = run_pytest(workspace, "tests/test_opening.py")
     assert done.returncode != 0, "探针被提前调用，默认档居然没红"
+
+
+def test_the_arming_math_is_falsifiable(tmp_path):
+    """`arm_after` 永远返回「不用等」，默认档必须红 —— 布防是她的待机入口。"""
+    workspace = prepare(tmp_path, tests=["test_opening.py"])
+    mutate(workspace, "huatou/opening.py",
+           "    quiet_left = float(dials.open_sec(channel)) if quiet is None \\\n",
+           "    return 0.0\n"
+           "    quiet_left = float(dials.open_sec(channel)) if quiet is None \\\n")
+    done = run_pytest(workspace, "tests/test_opening.py")
+    assert done.returncode != 0, "布防时长被架空，默认档居然没红"
