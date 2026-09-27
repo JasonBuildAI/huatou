@@ -56,3 +56,18 @@ def test_shape_2_question_words(text):
 def test_shape_2_negative_prefixes_are_statements(text):
     """否定前缀那几格要真的挡得住 —— 它们读起来是陈述，不是问句。"""
     assert not asks_the_user(text)
+
+def test_shape_3_a_ma_in_the_middle_counts_too():
+    """真机 2026-09-23 23:04：收口是「到哪了」，句中的「吗」要把这一条救回来。"""
+    assert asks_the_user(
+        "还没哦，画到一半。你呢，今天不是坐了很久地铁吗，现在到哪了")
+
+
+@pytest.mark.parametrize("text", [
+    "这么漂亮的地方",
+    "今天过得还不错",
+    "我一会儿就去",
+])
+def test_shape_3_does_not_stretch_to_a_middle_me(text):
+    """「么」不跟着放宽：它在「这么 / 那么 / 多么」里长着。"""
+    assert not asks_the_user(text)

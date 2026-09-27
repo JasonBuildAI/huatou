@@ -28,6 +28,12 @@ _Q_WORD = re.compile(
     r"|(?<=[，,])还是")
 
 
+# 第三种形状：「吗」**不挑位置**。真机 2026-09-23 23:04「还没哦，画到一半。你呢，
+# 今天不是坐了很久地铁吗，现在到哪了」—— 收口是「到哪了」，只认收口的老判据认不出，
+# 紧接着那轮定时主动就接上来把话续了。句中的「么」**不能照搬**这一格：它同样长在
+# 「这么 / 那么 / 多么」里，量过语料一条都没多认（`docs/rules.md` §1.2）。
+_MA_ANYWHERE = "吗"
+
 def ends_with_question(s: str) -> bool:
     """这一段是不是以问号收口（尾部引号 / 括号不算数）。"""
     return bool(_QUESTION_TAIL.search(str(s or "").strip()))
@@ -41,4 +47,6 @@ def asks_the_user(s: str) -> bool:
     t = str(s or "").strip()
     if ends_with_question(t):
         return True
-    return bool(_Q_WORD.search(t))
+    if _Q_WORD.search(t):
+        return True
+    return _MA_ANYWHERE in t
