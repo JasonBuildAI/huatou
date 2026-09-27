@@ -7,11 +7,19 @@
 from __future__ import annotations
 
 import re
+from typing import Iterable
 
 from .dials import Dials
 from .types import State
 
-__all__ = ["first_sentence", "line_rejected", "plain_text", "said_sentences"]
+__all__ = [
+    "DEFAULT_BANNED_LINES",
+    "banned_lines_with",
+    "first_sentence",
+    "line_rejected",
+    "plain_text",
+    "said_sentences",
+]
 
 # 空转黑名单（24 条纯问候 / 空开场）。判据是**整句相等**：「你好呀，今天画室特别安静……」
 # 不算 —— 那是真的在说话。来历是反馈 6：用户原话是「不要频繁地说什么无意义的
@@ -23,6 +31,16 @@ _EMPTY_OPENERS = (
     "在干嘛", "你在干嘛", "干嘛呢",
 )
 
+
+
+# 禁用句表。这三句在源系统里只写在 prompt 里：三层防线审计（prompt 说一遍 /
+# 机器兜一道 / 度量看得见）里，它们的「机器」一格是空的 —— 也就是「模型高兴才算」。
+# 本库把它补成第二层，并且允许宿主再加自己的句子。
+DEFAULT_BANNED_LINES = (
+    "你怎么不理我",
+    "你怎么不回答我的问题",
+    "你都不睬我",
+)
 
 def plain_text(text: str) -> str:
     """归一化成「只剩字」：标点、空白、表情符号全去掉，英文压成小写。
@@ -73,7 +91,37 @@ def repeats_recent(state: State, plain: str, *, dials: Dials,
     return False
 
 
-def line_rejected(state: State, line: str, *, dials: Dials, split_sentences) -> str:
+def banned_lines_with(extra: Iterable[str] = ()) -> tuple:
+    """默认禁用句 + 宿主自己加的，去重后返回（顺序稳定，便于日志比对）。"""
+    out = list(DEFAULT_BANNED_LINES)
+    seen = set(out)
+    for item in extra or ():
+        text = str(item or "").strip()
+        if text and text not in seen:
+            seen.add(text)
+            out.append(text)
+    return tuple(out)
+
+
+def is_banned_line(line: str, banned_lines: Iterable[str]) -> bool:
+    """这一句是不是禁用句。两档：先原样相等，再归一化后相等。
+
+    归一化那一档是兜底：尾巴上加个标点、多空几格（「你怎么不理我。」）不该绕过去。
+    两档都会判，任一中就是命中 —— 分成两档是为了让加进来的句子既有「原话相等」
+    这条最直观的判据，也不至于被一个标点绕过去。
+    """
+    text = str(line or "").strip()
+    plain = plain_text(text)
+    for entry in banned_lines or ():
+        if text == str(entry or "").strip():
+            return True
+        if plain and plain == plain_text(entry):
+            return True
+    return False
+
+
+def line_rejected(state: State, line: str, *, dials: Dials, split_sentences,
+                  banned_lines: Iterable[str] = ()) -> str:
     """这一句能不能出口：返回**理由串**，空串 = 放行。
 
     回理由而不是布尔，与 `Verdict` 是同一个理由：面板上要能写出「她为什么说不出话」。
@@ -82,6 +130,8 @@ def line_rejected(state: State, line: str, *, dials: Dials, split_sentences) -> 
     plain = plain_text(first_sentence(split_sentences, line))
     if not plain:
         return "not_a_line"      # 纯标点 / 表情：不是话
+    if is_banned_line(line, banned_lines_with(banned_lines)):
+        return "banned_line"
     if plain in _EMPTY_OPENERS_PLAIN:
         # 整句相等才挡：「你好呀，今天画室特别安静……」不算，那是真的在说话。
         return "empty_opener"

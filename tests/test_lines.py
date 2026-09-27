@@ -138,3 +138,32 @@ def test_only_the_last_dedup_window_messages_are_compared():
 def test_a_zero_window_turns_the_repeat_check_off():
     state = State(recent_said=["今天画了五版"])
     assert check("今天画了五版", state=state, dials=Dials(dedup_window=0)) == ""
+
+# ---------------------------------------------------------------- 禁用句表
+DEFAULT_BANNED = ["你怎么不理我", "你怎么不回答我的问题", "你都不睬我"]
+
+
+@pytest.mark.parametrize("line", DEFAULT_BANNED)
+def test_the_three_promised_lines_are_blocked(line):
+    """三层防线里「机器」那一格本来是空的 —— 这三句现在有确定性保障了。"""
+    assert check(line) == "banned_line"
+
+
+@pytest.mark.parametrize("line", ["你怎么不理我。", "你怎么不理我！", " 你怎么不理我 "])
+def test_the_banned_list_also_matches_after_normalizing(line):
+    assert check(line) == "banned_line"
+
+
+def test_a_host_can_add_its_own_banned_lines():
+    from huatou.lines import line_rejected
+
+    extra = ["别问了行吗"]
+    assert check("别问了行吗") == "", "宿主不加，就不该被挡"
+    assert line_rejected(State(), "别问了行吗", dials=Dials(),
+                         split_sentences=split_sentences,
+                         banned_lines=extra) == "banned_line"
+
+
+def test_the_banned_list_does_not_swallow_neighbours():
+    """只有整句命中才挡：「你别不理我，我就是顺口一问」是正常在说话。"""
+    assert check("你别不理我，我就是顺口一问") == ""
