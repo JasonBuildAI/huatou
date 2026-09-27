@@ -93,3 +93,21 @@ def test_a_broken_rng_degrades_to_not_handing_back_but_says_why():
     denied = check(rng=CountingRng(error=RuntimeError("没有随机源")))
     assert not denied.allowed and denied.reason == "rng_error"
     assert "没有随机源" in denied.detail
+
+def test_the_draw_is_not_consumed_when_an_earlier_gate_blocks():
+    """抽签放最后：被挡住时一个随机数都不许消费，不然两个信号会混在一起。"""
+    rng = CountingRng(0.0)
+    assert should_hand_back(State(), channel=Channel.TEXT, user_msg="嗯",
+                            dials=Dials(), rng=rng).reason == "too_short"
+    assert should_hand_back(State(her_ask_streak=2), channel=Channel.TEXT,
+                            user_msg="今天加班到几点才回来",
+                            dials=Dials(), rng=rng).reason == "ask_streak"
+    assert rng.calls == 0
+
+
+def test_the_draw_is_consumed_exactly_once_when_both_gates_pass():
+    rng = CountingRng(0.0)
+    assert should_hand_back(State(), channel=Channel.TEXT,
+                            user_msg="今天加班到几点才回来",
+                            dials=Dials(), rng=rng).allowed
+    assert rng.calls == 1
