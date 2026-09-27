@@ -202,3 +202,28 @@ def test_the_zero_dependency_guard_is_falsifiable(tmp_path):
            "import pytest\nfrom .dials import Dials\n")
     done = run_pytest(workspace, "tests/test_zero_deps.py")
     assert done.returncode != 0, "第三方 import 混进来了，护栏居然没红"
+
+
+# design.md §8 的第二条硬验收：注释掉 opening.py 里**任意一道**判据，
+# 默认档必须变红。这里把七道闸逐道换成 `if False:` 跑一遍 —— 哪一道没人看，
+# 这一条就会红，而不是等某天线上出了问题才发现。
+_OPENING_GATES = (
+    ("disabled", "    if int(dials.max_streak or 0) <= 0:\n"),
+    ("waiting_user", "    if bool(state.waiting_user):\n"),
+    ("text_fired", "    if Channel.coerce(channel) is Channel.TEXT and bool(state.text_fired):\n"),
+    ("max_streak", "    if int(state.streak or 0) >= int(dials.max_streak):\n"),
+    ("quiet", "    if quiet is not None and quiet < float(dials.open_sec(channel)):\n"),
+    ("min_gap", "    if float(now) - float(state.last_open_ts or 0.0) < float(dials.min_gap_sec):\n"),
+    ("material", "    try:\n        material_ready = bool(material.has_material())\n"),
+)
+
+
+@pytest.mark.parametrize("name,head", _OPENING_GATES, ids=[n for n, _ in _OPENING_GATES])
+def test_every_gate_in_may_open_can_be_commented_out_and_caught(tmp_path, name, head):
+    workspace = prepare(tmp_path, tests=["test_opening.py"])
+    if name == "material":
+        mutate(workspace, "huatou/opening.py", head, "    try:\n        material_ready = True\n")
+    else:
+        mutate(workspace, "huatou/opening.py", head, "    if False:\n")
+    done = run_pytest(workspace, "tests/test_opening.py")
+    assert done.returncode != 0, f"把 {name} 那道闸拆掉，默认档居然没红"
