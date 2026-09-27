@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import re
 
+from .dials import Dials
 from .types import State
 
-__all__ = ["plain_text"]
+__all__ = ["line_rejected", "plain_text"]
 
 # 空转黑名单（24 条纯问候 / 空开场）。判据是**整句相等**：「你好呀，今天画室特别安静……」
 # 不算 —— 那是真的在说话。来历是反馈 6：用户原话是「不要频繁地说什么无意义的
@@ -30,3 +31,12 @@ def plain_text(text: str) -> str:
     不归一化的话，模型在尾巴上加个标点就绕过去了。
     """
     return re.sub(r"[\W_]+", "", str(text or "")).lower()
+def line_rejected(state: State, line: str, *, dials: Dials, split_sentences) -> str:
+    """这一句能不能出口：返回**理由串**，空串 = 放行。
+
+    回理由而不是布尔，与 `Verdict` 是同一个理由：面板上要能写出「她为什么说不出话」。
+    顺序按从便宜到贵：不是话 → 空转名单 → 禁用句 → 逐字重复。
+    """
+    if not plain_text(line):
+        return "not_a_line"      # 纯标点 / 表情：不是话
+    return ""

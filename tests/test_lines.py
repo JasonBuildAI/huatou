@@ -35,3 +35,18 @@ def test_plain_text_keeps_only_the_words(raw, plain):
 def test_plain_text_never_raises_on_odd_input():
     assert plain_text(None) == ""
     assert plain_text(3.14) == "314"
+
+def check(line, *, state=None, dials=None):
+    from huatou.lines import line_rejected
+
+    return line_rejected(state or State(), line, dials=dials or Dials(),
+                         split_sentences=split_sentences)
+
+
+@pytest.mark.parametrize("line", ["……", "🙂", "。。。", "！？", "   "])
+def test_punctuation_and_emoji_are_not_a_line(line):
+    assert check(line) == "not_a_line"
+
+
+def test_a_real_sentence_passes():
+    assert check("今天画了五版，手都酸了。") == ""
