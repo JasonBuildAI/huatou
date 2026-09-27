@@ -75,3 +75,15 @@ def test_the_default_gate_does_not_collect_the_meta_tier():
     assert "test_meta.py::" not in default.stdout, default.stdout[-400:]
     meta = run_pytest(ROOT, "-m", "meta", "--collect-only", "tests/test_meta.py")
     assert "test_meta.py::" in meta.stdout, meta.stdout[-400:]
+
+
+def test_the_waiting_user_gate_is_falsifiable(tmp_path):
+    """关掉「她问过就等他回话」这一道，默认档必须红（§2 第 2 道）。"""
+    workspace = prepare(tmp_path, tests=["test_opening.py"])
+    mutate(workspace, "huatou/opening.py",
+           '    if bool(state.waiting_user):\n'
+           '        return Verdict.deny("waiting_user", "她问过，还没等到他真实开口")\n',
+           '    if False:\n'
+           '        return Verdict.deny("waiting_user", "她问过，还没等到他真实开口")\n')
+    done = run_pytest(workspace, "tests/test_opening.py")
+    assert done.returncode != 0, "关掉这一道闸，默认档居然没红"
