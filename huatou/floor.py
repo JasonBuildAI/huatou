@@ -96,3 +96,17 @@ class Floor:
         state.last_activity_ts = at
         if Channel.coerce(channel) is Channel.TEXT:
             state.text_fired = True
+    def note_said(self, state: State, text: str) -> None:
+        """她把一条消息真的说出口了（主动开口与普通回复都要记）。
+
+        逐字重复那条判据比的正是这里记下来的东西：**她说过的话**。
+        按 `dedup_window` 只留最近几条，状态就不会随轮次线性膨胀；
+        窗口 0（关掉重复检查）时至少留一条，这样把窗口调回来不至于从空开始。
+        """
+        message = str(text or "").strip()
+        if not message:
+            return
+        keep = max(1, int(self.dials.dedup_window or 0))
+        said = list(state.recent_said or [])
+        said.append(message)
+        state.recent_said = said[-keep:]

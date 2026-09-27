@@ -140,3 +140,39 @@ def test_two_opens_in_a_row_hit_the_limit():
     floor.note_opened(state, channel=Channel.CALL, now=20.0)
     assert state.streak == 2
     assert floor.may_open(state, channel=Channel.CALL).reason == "max_streak"
+
+def test_what_she_said_is_kept_so_the_repeat_check_has_something_to_compare():
+    floor, _, _ = make_floor()
+    state = State()
+    floor.note_said(state, "今天画了五版")
+    assert state.recent_said == ["今天画了五版"]
+    assert floor.line_rejected(state, "今天画了五版") == "repeat"
+
+
+def test_the_window_keeps_the_state_from_growing_with_every_turn():
+    floor, _, _ = make_floor()
+    state = State()
+    for i in range(9):
+        floor.note_said(state, f"第 {i} 条")
+    assert len(state.recent_said) == 5, "窗口默认 5 条，多出来的丢掉"
+    assert state.recent_said[-1] == "第 8 条"
+    assert floor.line_rejected(state, "第 3 条") == "", "早就不在窗口里的不算重复"
+
+
+def test_an_empty_message_is_not_recorded():
+    floor, _, _ = make_floor()
+    state = State()
+    floor.note_said(state, "")
+    floor.note_said(state, "   ")
+    assert state.recent_said == []
+
+
+def test_the_trim_window_is_read_at_call_time():
+    """窗口现读：宿主把 dedup_window 调小，下一次记就把多的裁掉。"""
+    floor, _, _ = make_floor()
+    state = State()
+    floor.note_said(state, "第一句")
+    floor.note_said(state, "第二句")
+    floor.dials = Dials(dedup_window=1)
+    floor.note_said(state, "第三句")
+    assert state.recent_said == ["第三句"]
