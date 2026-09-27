@@ -141,3 +141,15 @@ def test_the_dedup_window_is_falsifiable(tmp_path):
            "    window = 0\n")
     done = run_pytest(workspace, "tests/test_lines.py")
     assert done.returncode != 0, "重复判据失灵，默认档居然没红"
+
+
+def test_the_state_compatibility_is_falsifiable(tmp_path):
+    """老状态的布尔量不再回落成「连问 1 轮」，默认档必须红（`rules.md` §6.4）。"""
+    workspace = prepare(tmp_path, tests=["test_types.py"])
+    mutate(workspace, "huatou/types.py",
+           '        if not state.her_ask_streak and _as_bool(raw.get("last_her_ask"), False):\n'
+           "            state.her_ask_streak = 1\n",
+           "        if None:\n"
+           "            state.her_ask_streak = 1\n")
+    done = run_pytest(workspace, "tests/test_types.py")
+    assert done.returncode != 0, "向前兼容断了，默认档居然没红"
