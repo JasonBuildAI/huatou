@@ -5,10 +5,10 @@
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
-__all__ = ["Channel", "Verdict"]
+__all__ = ["Channel", "State", "Verdict"]
 
 
 class Channel(str, Enum):
@@ -56,3 +56,27 @@ class Verdict:
     @classmethod
     def deny(cls, reason: str, detail: str = "") -> "Verdict":
         return cls(False, reason, detail)
+
+@dataclass
+class State:
+    """发言权的全部状态（`docs/rules.md` §6）。
+
+    宿主持有它、也可以直接持久化它；**改写状态的入口只有 `Floor` 的 `note_*`**，
+    判定函数一个字节都不写（硬约束 3）。字段默认值是「一个刚从没主动开过口的
+    新会话」—— 于是老宿主不做迁移也能跑，行为是「她还没试过开口」。
+    """
+
+    # 连续主动开口了几次（用户一开口就清零）
+    streak: int = 0
+    # 上一次主动开口的时刻
+    last_open_ts: float = 0.0
+    # 文字端「这一回合已经主动挑过一次」
+    text_fired: bool = False
+    # 她问过一个带话头的问题，正在等用户真实回话
+    waiting_user: bool = False
+    # 她连着几轮都在问他（连问闸用）
+    her_ask_streak: int = 0
+    # 她最近说过的消息，最新在后（逐字重复判据的比对方）
+    recent_said: list = field(default_factory=list)
+    # 最后一次「谁说了话」的时刻（沉默判据的锚点；0 = 还没有活动记录）
+    last_activity_ts: float = 0.0

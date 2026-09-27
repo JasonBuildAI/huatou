@@ -43,3 +43,23 @@ def test_verdict_is_frozen():
     v = Verdict.deny("waiting_user")
     with pytest.raises(dataclasses.FrozenInstanceError):
         v.allowed = True
+
+def test_state_starts_as_a_session_that_never_opened_itself():
+    """默认值 = 一个刚从没主动开过口的新会话；老宿主不做迁移也能跑。"""
+    from huatou.types import State
+
+    s = State()
+    assert (s.streak, s.last_open_ts, s.her_ask_streak) == (0, 0.0, 0)
+    assert s.text_fired is False
+    assert s.waiting_user is False
+    assert s.recent_said == []
+    assert s.last_activity_ts == 0.0
+
+
+def test_each_state_gets_its_own_recent_said_list():
+    """`recent_said` 不能是类属性那种共享的可变默认值。"""
+    from huatou.types import State
+
+    a, b = State(), State()
+    a.recent_said.append("你好")
+    assert b.recent_said == []
