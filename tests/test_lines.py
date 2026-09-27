@@ -75,3 +75,25 @@ def test_the_blacklist_compares_after_normalizing(line):
 def test_a_greeting_that_keeps_talking_is_not_empty():
     """整句相等才算 ——「你好呀，今天画室特别安静……」是她在真的说话。"""
     assert check("你好呀，今天画室特别安静……") == ""
+
+def test_only_the_first_sentence_is_judged():
+    """后面几条是她展开的内容 —— 拿黑名单去卡会把真的关心话误伤。"""
+    assert check("你好。今天画室特别安静……") == "empty_opener"
+    assert check("今天画了五版，手都酸了。你还好吗？") == ""
+
+
+def _with_splitter(splitter, line="你好"):
+    from huatou.lines import line_rejected
+
+    return line_rejected(State(), line, dials=Dials(), split_sentences=splitter)
+
+
+def _boom(text):
+    raise RuntimeError("切句器坏了")
+
+
+@pytest.mark.parametrize("splitter", [_boom, lambda text: []])
+def test_a_useless_splitter_falls_back_to_the_whole_line(splitter):
+    """切句器坏了、或者切不出东西，都不该把话吃掉：退回整条再判。"""
+    assert _with_splitter(splitter) == "empty_opener"
+    assert _with_splitter(splitter, "今天画了五版") == ""

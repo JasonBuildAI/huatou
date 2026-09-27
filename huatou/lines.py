@@ -11,7 +11,7 @@ import re
 from .dials import Dials
 from .types import State
 
-__all__ = ["line_rejected", "plain_text"]
+__all__ = ["first_sentence", "line_rejected", "plain_text"]
 
 # 空转黑名单（24 条纯问候 / 空开场）。判据是**整句相等**：「你好呀，今天画室特别安静……」
 # 不算 —— 那是真的在说话。来历是反馈 6：用户原话是「不要频繁地说什么无意义的
@@ -35,13 +35,28 @@ def plain_text(text: str) -> str:
 _EMPTY_OPENERS_PLAIN = frozenset(plain_text(x) for x in _EMPTY_OPENERS)
 
 
+def first_sentence(split_sentences, line: str) -> str:
+    """她这一句的**第一句** —— 出稿闸只判它。
+
+    后面几条是她展开的内容，拿黑名单去卡会把「你还好吗」这种真的关心话误伤。
+    切句器抛出异常、或者切不出东西时退回整条：闸门不因为工具坏了就把话吃掉。
+    """
+    text = str(line or "")
+    try:
+        parts = [str(s).strip() for s in split_sentences(text)]
+    except Exception:                             # noqa: BLE001
+        parts = []
+    parts = [part for part in parts if part]
+    return parts[0] if parts else text.strip()
+
+
 def line_rejected(state: State, line: str, *, dials: Dials, split_sentences) -> str:
     """这一句能不能出口：返回**理由串**，空串 = 放行。
 
     回理由而不是布尔，与 `Verdict` 是同一个理由：面板上要能写出「她为什么说不出话」。
     顺序按从便宜到贵：不是话 → 空转名单 → 禁用句 → 逐字重复。
     """
-    plain = plain_text(line)
+    plain = plain_text(first_sentence(split_sentences, line))
     if not plain:
         return "not_a_line"      # 纯标点 / 表情：不是话
     if plain in _EMPTY_OPENERS_PLAIN:
