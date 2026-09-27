@@ -1,0 +1,28 @@
+# 默认档与元档。两条都断网可跑：默认档里没有任何网络与 Key 依赖，
+# 元档只是起子进程跑 pytest（证明判据能被改红）。
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      # 先证明「装得上」：硬约束 1 说的就是 pip install 之后的 import 行为。
+      - name: 安装
+        run: python -m pip install .
+      - name: 默认档
+        run: python -m pytest
+      - name: 元档
+        run: python -m pytest -m meta
