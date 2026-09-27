@@ -180,3 +180,15 @@ def test_the_arming_math_is_falsifiable(tmp_path):
            "    quiet_left = float(dials.open_sec(channel)) if quiet is None \\\n")
     done = run_pytest(workspace, "tests/test_opening.py")
     assert done.returncode != 0, "布防时长被架空，默认档居然没红"
+
+
+def test_the_privacy_guard_is_falsifiable(tmp_path):
+    """把源产品的名字写回一个会被扫到的文件，隐私护栏必须红。
+
+    名字在这里也是用码点拼的 —— 这份元档文件自己也不许带明文。
+    """
+    workspace = prepare(tmp_path, tests=["test_privacy.py"])
+    name = "".join(chr(code) for code in (0x6797, 0x4E00, 0x6B23))
+    (workspace / "README.md").write_text(f"# {name}\n", encoding="utf-8")
+    done = run_pytest(workspace, "tests/test_privacy.py")
+    assert done.returncode != 0, "名字写回来了，隐私护栏居然没红"
