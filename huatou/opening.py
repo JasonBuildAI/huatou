@@ -28,4 +28,6 @@ def may_open(state: State, *, channel: "Channel | str", now: float,
         return Verdict.deny("disabled", "这个功能是关掉的：max_streak = 0")
     if bool(state.waiting_user):
         return Verdict.deny("waiting_user", "她问过，还没等到他真实开口")
+    if Channel.coerce(channel) is Channel.TEXT and bool(state.text_fired):
+        return Verdict.deny("text_fired", "文字端这一回合已经主动挑过一次")
     return Verdict.allow()

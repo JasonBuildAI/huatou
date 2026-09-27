@@ -47,3 +47,9 @@ def test_waiting_for_him_blocks_the_next_open():
     v = check(State(waiting_user=True), probe=probe)
     assert not v.allowed and v.reason == "waiting_user"
     assert probe.calls == 0
+
+def test_text_side_only_gets_one_proactive_try_per_turn():
+    """文字端一个真实回合只主动挑一次；通话档不受这一条限制。"""
+    fired = State(text_fired=True)
+    assert check(fired, channel=Channel.TEXT).reason == "text_fired"
+    assert check(fired, channel=Channel.CALL).allowed
