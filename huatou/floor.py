@@ -82,3 +82,17 @@ class Floor:
         state.waiting_user = False
         state.her_ask_streak = 0
         state.last_activity_ts = self._clock_now(now)
+    def note_opened(self, state: State, *, channel: "Channel | str",
+                    now: "float | None" = None) -> None:
+        """她主动开口了一次（放行**且真的发了**）。
+
+        `channel` 是必须的：`text_fired` 只对文字端生效，而状态只有 `note_*`
+        能改（硬约束 3），所以「这次算哪一档」得由宿主说清楚。
+        放行但最终没发出去的那一次**不要**调它 —— 那会把机会白白用掉。
+        """
+        at = self._clock_now(now)
+        state.streak = int(state.streak or 0) + 1
+        state.last_open_ts = at
+        state.last_activity_ts = at
+        if Channel.coerce(channel) is Channel.TEXT:
+            state.text_fired = True

@@ -112,3 +112,31 @@ def test_note_star_timestamps_can_be_given_explicitly():
     state = State()
     floor.note_user_spoke(state, now=1234.5)
     assert state.last_activity_ts == 1234.5
+
+def test_opening_herself_counts_up_and_stamps_the_time():
+    floor, _, _ = make_floor()
+    state = State()
+    floor.note_opened(state, channel=Channel.TEXT, now=1500.0)
+    assert state.streak == 1
+    assert state.last_open_ts == 1500.0
+    assert state.last_activity_ts == 1500.0
+    assert state.text_fired is True
+
+
+def test_only_the_text_channel_marks_the_text_chance_as_used():
+    """通话档不写 `text_fired`：它压的是「文字端这一回合已经挑过一次」。"""
+    floor, _, _ = make_floor()
+    state = State()
+    floor.note_opened(state, channel=Channel.CALL, now=1500.0)
+    assert state.text_fired is False
+    assert state.streak == 1, "通话档照样算连续主动的一次"
+
+
+def test_two_opens_in_a_row_hit_the_limit():
+    """连开两次之后，第三次就不放行了 —— 时钟与两个计时器都放过它之后才轮到上限。"""
+    floor, _, _ = make_floor(now=30.0)
+    state = State()
+    floor.note_opened(state, channel=Channel.CALL, now=1.0)
+    floor.note_opened(state, channel=Channel.CALL, now=20.0)
+    assert state.streak == 2
+    assert floor.may_open(state, channel=Channel.CALL).reason == "max_streak"
