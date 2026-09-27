@@ -121,3 +121,23 @@ def test_the_ask_streak_gate_is_falsifiable(tmp_path):
            "    if False:\n")
     done = run_pytest(workspace, "tests/test_handback.py")
     assert done.returncode != 0, "连问闸被旁路，默认档居然没红"
+
+
+def test_the_empty_opener_list_is_falsifiable(tmp_path):
+    """空转名单被清空（她又开始「你好」「在吗」），默认档必须红（§5 第 2 条）。"""
+    workspace = prepare(tmp_path, tests=["test_lines.py"])
+    mutate(workspace, "huatou/lines.py",
+           "_EMPTY_OPENERS_PLAIN = frozenset(plain_text(x) for x in _EMPTY_OPENERS)\n",
+           "_EMPTY_OPENERS_PLAIN = frozenset()\n")
+    done = run_pytest(workspace, "tests/test_lines.py")
+    assert done.returncode != 0, "名单被清空，默认档居然没红"
+
+
+def test_the_dedup_window_is_falsifiable(tmp_path):
+    """逐字重复那条判据失灵（永远说没重复），默认档必须红（§5 第 4 条）。"""
+    workspace = prepare(tmp_path, tests=["test_lines.py"])
+    mutate(workspace, "huatou/lines.py",
+           "    window = int(dials.dedup_window or 0)\n",
+           "    window = 0\n")
+    done = run_pytest(workspace, "tests/test_lines.py")
+    assert done.returncode != 0, "重复判据失灵，默认档居然没红"
