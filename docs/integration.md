@@ -138,3 +138,44 @@ state = State.from_dict(payload)     # 读回：认不出的键忽略，坏值�
                         他开口 → note_user_spoke → 解除
 ```
 
+## §5 出稿闸接在送出去之前
+
+`line_rejected` 接在**出稿写成之后、送去合成 / 落进气泡之前**：
+
+```
+may_open 放行 → 生成出稿 → 取第一句 → line_rejected(state, 第一句)
+                                            │
+                        空串（放行）────────┴──── 理由串（拒绝）
+                                            │              │
+                                    送 TTS / 落气泡    这一次退化成沉默
+```
+
+四条约定：
+
+- **只判主动开口这条路。** 用户问了就必须回 —— 那不是策略，是契约
+  （`design.md` §2）。普通回复不经过这道闸。
+- **只判第一句。** 后面几条是她展开的内容，拿黑名单去卡会把「你还好吗」
+  这种真的关心话误伤。
+- **不通过就真的不说。** 把同一句改两个标点再送没有意义（归一化之后还是同一句）；
+  宿主可以让模型换一句，换出来的那一次仍然要再过一遍闸。
+- **沉默不是错误，但不许静默。** 理由串（`empty_opener` / `banned_line` /
+  `repeat` / `not_a_line`）进日志与面板：面板上要能写出「她为什么说不出话」，
+  和 `may_open` 的 `Verdict.reason` 是同一个理由。
+
+### 一次主动开口的完整时序
+
+```
+① 布防      arm_after(state, channel=TEXT) → 10.0 秒，挂表
+② 到点      服务端再判一次：may_open(state, channel=TEXT) → allowed
+③ 出稿      生成 → line_rejected(state, 第一句) → ""（可以出口）
+④ 发出      真的送出去了 → note_opened(state, channel=TEXT)
+                            note_said(state, 出稿)
+                            note_her_ask(state, asks_the_user(出稿的每条))
+⑤ 收尾      arm_after(state, channel=TEXT) → None（文字端这一回合用过了）
+⑥ 他开口    note_user_spoke(state) → 全部清零，回到 ①
+```
+
+她问过之后（`waiting_user = True`）的每一步都还是这套：`may_open` 返回
+`waiting_user`、`arm_after` 返回 `None`；宿主不需要额外记住「我正在等她回话」——
+`must_wait(state)` 就是给日志与面板读的那个布尔量。
+
