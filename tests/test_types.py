@@ -63,3 +63,31 @@ def test_each_state_gets_its_own_recent_said_list():
     a, b = State(), State()
     a.recent_said.append("你好")
     assert b.recent_said == []
+
+def test_to_dict_is_json_ready_and_does_not_lend_out_the_list():
+    """落盘的形状要能直接 json.dumps；`recent_said` 必须是副本。"""
+    import json
+
+    from huatou.types import State
+
+    s = State(streak=1, last_open_ts=100.5, text_fired=True,
+              waiting_user=True, her_ask_streak=2,
+              recent_said=["你好", "在干嘛"], last_activity_ts=99.0)
+    d = s.to_dict()
+    assert json.loads(json.dumps(d)) == d
+
+    d["recent_said"].append("别的话")
+    assert s.recent_said == ["你好", "在干嘛"]
+
+
+def test_to_dict_repairs_sloppy_values():
+    """状态可能来自旧版本或被人手改过：出口这一道要能收得住坏值。"""
+    from huatou.types import State
+
+    s = State(streak=None, last_open_ts=None, her_ask_streak=None,
+              recent_said=None, last_activity_ts=None)
+    assert s.to_dict() == {
+        "streak": 0, "last_open_ts": 0.0, "text_fired": False,
+        "waiting_user": False, "her_ask_streak": 0, "recent_said": [],
+        "last_activity_ts": 0.0,
+    }

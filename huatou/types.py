@@ -80,3 +80,22 @@ class State:
     recent_said: list = field(default_factory=list)
     # 最后一次「谁说了话」的时刻（沉默判据的锚点；0 = 还没有活动记录）
     last_activity_ts: float = 0.0
+    def to_dict(self) -> dict:
+        """落盘 / 下发用的形状：只放 JSON 装得下的东西（硬约束 6）。
+
+        `recent_said` 要**复制一份**：直接把它交出去，宿主那边一次 `append`
+        就改到了活状态，判定与持久化的边界就没了。
+
+        这里顺手把每个字段都过一遍类型（`or 0` / `str(x)`）：状态可能来自
+        旧版本、也可能被人手改过，`to_dict` 是离开本库的最后一道口子，
+        它吐出去的东西必须能被 JSON 序列化。
+        """
+        return {
+            "streak": int(self.streak or 0),
+            "last_open_ts": float(self.last_open_ts or 0.0),
+            "text_fired": bool(self.text_fired),
+            "waiting_user": bool(self.waiting_user),
+            "her_ask_streak": int(self.her_ask_streak or 0),
+            "recent_said": [str(x) for x in (self.recent_said or [])],
+            "last_activity_ts": float(self.last_activity_ts or 0.0),
+        }
