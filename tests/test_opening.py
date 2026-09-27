@@ -53,3 +53,15 @@ def test_text_side_only_gets_one_proactive_try_per_turn():
     fired = State(text_fired=True)
     assert check(fired, channel=Channel.TEXT).reason == "text_fired"
     assert check(fired, channel=Channel.CALL).allowed
+
+def test_the_streak_limit_is_terminal_until_he_speaks():
+    """「她试了两次就不再打扰你」：到了上限就不再布防，直到他开口。"""
+    assert check(State(streak=1)).allowed
+    denied = check(State(streak=2))
+    assert not denied.allowed and denied.reason == "max_streak"
+    assert check(State(streak=9)).reason == "max_streak"
+
+
+def test_a_bigger_limit_lets_her_try_more():
+    """上限现读：同一条状态，宿主把 max_streak 调大就放行（硬约束 5）。"""
+    assert check(State(streak=3), dials=Dials(max_streak=4)).allowed
