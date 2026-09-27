@@ -26,3 +26,7 @@ jobs:
         run: python -m pytest
       - name: 元档
         run: python -m pytest -m meta
+      # 第三条验收命令（design.md §8）：示范脚本也要在 CI 里跑完一遍，
+      # 它是一份会跑的文档，坏了就是文档坏了。
+      - name: 示范
+        run: python -m huatou demo
