@@ -112,3 +112,13 @@ def test_the_gap_is_measured_from_the_last_open_not_from_now():
     """锚点是「上一次主动开口」那个时间戳，不是「刚刚」。"""
     dials = Dials(min_gap_sec=8)
     assert check(State(last_open_ts=0.0), now=1000.0, dials=dials).allowed
+
+def test_no_material_means_no_opening():
+    """没料就不开口 —— 这一条是产品判据，不是省钱判据。"""
+    empty = Probe(material=False)
+    denied = check(probe=empty)
+    assert not denied.allowed and denied.reason == "no_material"
+
+    full = Probe(material=True)
+    assert check(probe=full).allowed
+    assert (empty.calls, full.calls) == (1, 1), "放行与不放行各查一次库，不多查"

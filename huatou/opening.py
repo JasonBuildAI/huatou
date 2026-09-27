@@ -52,4 +52,9 @@ def may_open(state: State, *, channel: "Channel | str", now: float,
         return Verdict.deny("min_gap", "距上一次主动开口还不够久")
     if float(now) - float(state.last_open_ts or 0.0) < float(dials.min_gap_sec):
         return Verdict.deny("min_gap", "距上一次主动开口还不够久")
+    # 内容闸：唯一要读库的一道，所以必须最后一个跑（硬约束 4）。手里一点素材都
+    # 没有时她「起个头」只能靠编，而用户读到的就是「她说的话跟我完全无关」——
+    # 没料就不开口，比硬找一句话说不强。
+    if not bool(material.has_material()):
+        return Verdict.deny("no_material", "手里一点素材都没有：这次不开口，等他先说")
     return Verdict.allow()
