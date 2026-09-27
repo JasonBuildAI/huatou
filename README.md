@@ -20,15 +20,26 @@ touchstone  我怎么知道它变好了     （验收）
 
 ## 现在到哪一步
 
-施工中。包骨架已就位，之后按 `docs/design.md` §11 的顺序落地判据，
-每一步都以「代码 + 一条能失败的测试 + docs 里的理由」三件套收尾。
+判据全部落地，每一条都是「代码 + 一条能失败的测试 + docs 里的理由」三件套：
+
+- [`docs/design.md`](docs/design.md)：设计真源，每一节都回答「不这么做会怎样」；
+- [`docs/rules.md`](docs/rules.md)：逐条判据表，带源材料行号与真机证据日期；
+- [`docs/integration.md`](docs/integration.md)：宿主怎么接 —— 布防、还机会、
+  刷新继承，与四个 `note_*` 的调用点。
 
 ## 怎么跑
 
+三条验收命令（`docs/design.md` §8）：
+
 ```powershell
-python -m pytest            # 默认档：全绿，且断网可跑
-python -m pytest -m meta    # 元档：证明每条判据都能红（默认档不选它）
+python -m pytest            # 默认档：全绿，且断网可跑（元档不选中）
+python -m pytest -m meta    # 元档：把实现改坏一点，证明默认档真的会红
+python -m huatou demo       # 跑一遍假宿主的完整状态机（examples/companion.py）
 ```
+
+再加一条反证：**把 `huatou/opening.py` 里任意一道判据注释掉，`python -m pytest`
+必须变红**（`docs/design.md` §8 的第二条硬验收）。这条红不了，说明那一档
+没有能失败的用例在看着它。
 
 ## 三条立库时的约定
 
