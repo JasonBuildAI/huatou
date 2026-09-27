@@ -100,8 +100,21 @@ def test_a_useless_splitter_falls_back_to_the_whole_line(splitter):
 
 def test_the_same_sentence_said_again_is_rejected():
     """同一句「今天画了五版」再发一遍，读起来就是她只剩这一句话。"""
-    state = State(recent_said=["上午在画廊，下午补了张小稿。"])
-    assert check("今天画了五版", state=State(recent_said=["今天画了五版"])) == "repeat"
+    state = State(recent_said=["今天画了五版"])
+    assert check("今天画了五版", state=state) == "repeat"
+
+
+def test_a_half_sentence_hidden_in_an_earlier_message_is_still_a_repeat():
+    """真机那个形状：她安静十秒后开口，把上一条消息里的半句一字不差说了一遍。
+
+    历史里一条消息常常挤着好几句，而这一次要出口的是切句之后的一句 ——
+    整条对一句永远对不上，所以两边都要过同一个切句器。
+    """
+    history = "上午在画廊，下午补了张小稿。今天就躺着没起来。"
+    state = State(recent_said=[history])
+    assert check("今天就躺着没起来", state=state) == "repeat"
+    assert check("今天就躺着没起来。", state=state) == "repeat"
+    assert check("今天就先躺着", state=state) == ""
 
 
 def test_repeats_are_compared_after_normalizing_both_sides():
