@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "huatou"
+version = "0.1.0"
+description = "发言权管理器：现在能不能主动开口、答完要不要把话头递回去、这一句能不能出口"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+]
+
+[tool.setuptools]
+packages = ["huatou"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "meta: 元档 —— 证明每条判据都能红；默认档不选它，`python -m pytest -m meta` 才跑",
+]
