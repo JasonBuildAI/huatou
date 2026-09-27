@@ -5,9 +5,10 @@
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum
 
-__all__ = ["Channel"]
+__all__ = ["Channel", "Verdict"]
 
 
 class Channel(str, Enum):
@@ -33,3 +34,25 @@ class Channel(str, Enum):
             return cls(str(value).strip().lower())
         except ValueError:
             return cls.TEXT
+
+
+@dataclass(frozen=True)
+class Verdict:
+    """一次判定的结果：放不放行 + 一个机器可读的理由 + 一句给人看的话。
+
+    判定一律返回它，**不返回裸布尔**：面板上要能写出「她为什么没开口」，
+    而不是让用户猜「她记性不太好 / 她怎么不理我」。理由串是稳定接口，
+    改它等于改运维面板的一行字，要当成签名改动对待。
+    """
+
+    allowed: bool
+    reason: str
+    detail: str = ""
+
+    @classmethod
+    def allow(cls, reason: str = "ok", detail: str = "") -> "Verdict":
+        return cls(True, reason, detail)
+
+    @classmethod
+    def deny(cls, reason: str, detail: str = "") -> "Verdict":
+        return cls(False, reason, detail)
