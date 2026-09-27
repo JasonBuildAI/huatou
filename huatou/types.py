@@ -117,6 +117,12 @@ class State:
         state.her_ask_streak = _as_int(raw.get("her_ask_streak"), 0)
         state.recent_said = _as_str_list(raw.get("recent_said"))
         state.last_activity_ts = _as_float(raw.get("last_activity_ts"), 0.0)
+        # 向前兼容：老状态里只有一个布尔量 `last_her_ask`，读成「连问了 1 轮」。
+        # 落回之后她照样能被允许再问一轮；读不出来的字段让能力永远卡住，
+        # 正是这份状态机最不该有的失败姿态（`docs/rules.md` §6.4）。
+        # 新字段在场时以新字段为准 —— 布尔量只是迁移期的替身。
+        if not state.her_ask_streak and _as_bool(raw.get("last_her_ask"), False):
+            state.her_ask_streak = 1
         return state
 def _as_int(value, default: int) -> int:
     try:

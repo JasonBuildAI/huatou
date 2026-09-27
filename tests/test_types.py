@@ -121,3 +121,17 @@ def test_from_dict_ignores_keys_it_does_not_know():
 
     s = State.from_dict({"streak": 1, "reply_mode": "voice", "未来字段": [1, 2]})
     assert s == State(streak=1)
+
+def test_from_dict_treats_the_old_boolean_as_one_round_of_asking():
+    """老状态只有一个布尔量：读成「连问了 1 轮」，她还能再问一轮，不会永远卡住。"""
+    from huatou.types import State
+
+    assert State.from_dict({"last_her_ask": True}).her_ask_streak == 1
+    assert State.from_dict({"last_her_ask": False}).her_ask_streak == 0
+
+
+def test_new_field_wins_over_the_old_boolean():
+    """两个都在场时以新的为准 —— 布尔量只是迁移期的替身。"""
+    from huatou.types import State
+
+    assert State.from_dict({"her_ask_streak": 2, "last_her_ask": True}).her_ask_streak == 2
