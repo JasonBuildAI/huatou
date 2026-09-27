@@ -153,3 +153,19 @@ def test_the_state_compatibility_is_falsifiable(tmp_path):
            "            state.her_ask_streak = 1\n")
     done = run_pytest(workspace, "tests/test_types.py")
     assert done.returncode != 0, "向前兼容断了，默认档居然没红"
+
+
+def test_the_cheap_before_expensive_order_is_falsifiable(tmp_path):
+    """内容闸被提前到前几道之前（白开一次库），默认档必须红（硬约束 4）。
+
+    这条判据的落点是 `test_opening.py` 里那批 `probe.calls == 0`：
+    前面任一道挡住时，探针一次都不许被调用。
+    """
+    workspace = prepare(tmp_path, tests=["test_opening.py"])
+    mutate(workspace, "huatou/opening.py",
+           "    if bool(state.waiting_user):\n",
+           "    if bool(material.has_material()):\n"
+           "        pass\n"
+           "    if bool(state.waiting_user):\n")
+    done = run_pytest(workspace, "tests/test_opening.py")
+    assert done.returncode != 0, "探针被提前调用，默认档居然没红"
