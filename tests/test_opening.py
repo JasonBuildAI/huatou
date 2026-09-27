@@ -2,6 +2,8 @@
 
 全部时间判据都走假时钟与假探针：测试里不许出现真 `sleep`、真 `time.time()`。
 """
+import pytest
+
 from huatou.dials import Dials
 from huatou.opening import may_open
 from huatou.types import Channel, State
@@ -130,3 +132,32 @@ def test_a_broken_probe_degrades_to_silence_but_says_why():
     assert not denied.allowed and denied.reason == "material_error"
     assert "库打不开" in denied.detail
     assert boom.calls == 1
+
+# ---------------------------------------------------------------- 判据的顺序
+# 顺序本身就是设计：内容闸是唯一要读库的一道，必须最后一个跑。这一张表把每一道
+# 都单独摆出来，断言「轮到它时探针一次都没被调用过」—— 把顺序改回去会当场红。
+ORDER_CASES = [
+    ("disabled", State(), Dials(max_streak=0)),
+    ("waiting_user", State(waiting_user=True), Dials()),
+    ("text_fired", State(text_fired=True), Dials()),
+    ("max_streak", State(streak=2), Dials()),
+    ("quiet", State(last_activity_ts=1000.0), Dials()),
+    ("min_gap", State(last_open_ts=1000.0), Dials()),
+]
+
+
+@pytest.mark.parametrize("reason,state,dials", ORDER_CASES,
+                         ids=[case[0] for case in ORDER_CASES])
+def test_every_earlier_gate_short_circuits_before_the_library_is_opened(reason, state, dials):
+    probe = Probe()
+    v = may_open(state, channel=Channel.TEXT, now=1000.0, dials=dials, material=probe)
+    assert v.reason == reason
+    assert probe.calls == 0, "内容闸必须最后跑：每个不放行的轮次都不该白开一次库"
+
+
+def test_the_content_gate_runs_only_when_everything_else_passed():
+    probe = Probe(material=True)
+    v = may_open(State(last_activity_ts=1000.0, last_open_ts=1000.0),
+                 channel=Channel.TEXT, now=1100.0, dials=Dials(), material=probe)
+    assert v.allowed
+    assert probe.calls == 1
