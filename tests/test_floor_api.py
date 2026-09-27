@@ -176,3 +176,32 @@ def test_the_trim_window_is_read_at_call_time():
     floor.dials = Dials(dedup_window=1)
     floor.note_said(state, "第三句")
     assert state.recent_said == ["第三句"]
+
+def test_asking_him_puts_her_on_wait_and_counts_the_streak():
+    floor, _, _ = make_floor()
+    state = State()
+    floor.note_her_ask(state, True)
+    assert state.waiting_user is True
+    assert state.her_ask_streak == 1
+    floor.note_her_ask(state, True)
+    assert state.her_ask_streak == 2
+    assert floor.must_wait(state) is True
+
+
+def test_a_turn_without_a_question_clears_both():
+    """这一轮她没问，就没有「在等他回话」这回事 —— 两样一起清零。"""
+    floor, _, _ = make_floor()
+    state = State(her_ask_streak=2, waiting_user=True)
+    floor.note_her_ask(state, False)
+    assert state.her_ask_streak == 0
+    assert state.waiting_user is False
+    assert floor.must_wait(state) is False
+
+
+def test_the_wait_ends_when_he_speaks_even_if_she_never_stopped_asking():
+    """问后等待与连问计数是两件事：他开口就一起清掉。"""
+    floor, _, _ = make_floor(now=3000.0)
+    state = State()
+    floor.note_her_ask(state, True)
+    floor.note_user_spoke(state)
+    assert state.waiting_user is False and state.her_ask_streak == 0

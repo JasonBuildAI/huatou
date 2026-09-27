@@ -110,3 +110,16 @@ class Floor:
         said = list(state.recent_said or [])
         said.append(message)
         state.recent_said = said[-keep:]
+    def note_her_ask(self, state: State, asked: bool) -> None:
+        """她这一轮出稿里有没有在问他。
+
+        必须覆盖**普通回复路径**，不能只写在主动开口那一轮：用户没回答她的反问时，
+        再定时追问会像催促，而那正是最常见的一条路。
+        `asked=False` 把两样一起清零 —— 这一轮她没问，就没有「在等他回话」这回事。
+        """
+        if bool(asked):
+            state.her_ask_streak = int(state.her_ask_streak or 0) + 1
+            state.waiting_user = True
+        else:
+            state.her_ask_streak = 0
+            state.waiting_user = False
