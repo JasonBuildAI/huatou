@@ -343,5 +343,5 @@ her_ask(asked) 她这一轮出稿里有没有在问他                → her_as
 | 8 | 判据的检测模式自备一份 | `huatou/ask.py` 自带全部正则 | 代码审查：`huatou/` 不 import 任何表达层实现 |
 | 9 | 逐字重复按句比、同一个切句器 | `huatou/lines.py` 走注入的 `SentenceSplitter` | `tests/test_lines.py`：同一句话分在两条不同消息里也要认出来 |
 | 10 | 不对称的账写下来 | `docs/rules.md` §1.3 | 这一节自己 |
-| 11 | 反向用例必须能真的红 | `tests/test_meta.py` | 元档：把实现改坏，默认档必须变红（起子进程跑真 pytest） |
-| 12 | 不许内部读环境变量 | `huatou/` 里没有 `os.environ` / `getenv` | `tests/test_no_env.py`：扫源码 |
+| 11 | 反向用例必须能真的红 | `tests/test_meta.py` | 元档：起真子进程跑 pytest，先证明它报得出红，再把实现改坏一处、要求默认档变红 —— `may_open` 七道闸逐道、问句形状、连问闸、出稿闸两条、向前兼容、隐私与零依赖两条护栏 |
+| 12 | 不许内部读环境变量 | `huatou/` 里没有 `os.environ` / `getenv` | `tests/test_no_env.py`：扫包里每个 `.py`，并先用一行真的读取证明这条判据认得出它 |
