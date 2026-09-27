@@ -205,3 +205,41 @@ def test_the_wait_ends_when_he_speaks_even_if_she_never_stopped_asking():
     floor.note_her_ask(state, True)
     floor.note_user_spoke(state)
     assert state.waiting_user is False and state.her_ask_streak == 0
+
+# ---------------------------------------------------------------- 判定不改状态
+def test_the_judgements_never_write_to_the_state():
+    """判定跑完，状态逐字不变 —— 硬约束 3：「放不放行」与「放行之后怎么变」
+    只有一处真源，判定那边一个字节都不许写。"""
+    floor, _, _ = make_floor(now=1500.0)
+    state = State(streak=1, last_open_ts=1400.0, text_fired=True, waiting_user=True,
+                  her_ask_streak=1, recent_said=["她说过的话"], last_activity_ts=1499.0)
+    before = state.to_dict()
+    snapshot = State.from_dict(before)
+
+    floor.may_open(state, channel=Channel.TEXT)
+    floor.may_open(state, channel=Channel.CALL)
+    floor.arm_after(state, channel=Channel.TEXT)
+    floor.should_hand_back(state, channel=Channel.TEXT, user_msg="今天加班到几点才回来")
+    floor.must_wait(state)
+    floor.line_rejected(state, "你好")
+    floor.line_rejected(state, "她说过的话")
+    floor.asks_the_user("最近怎么了呀")
+
+    assert state.to_dict() == before
+    assert state == snapshot
+
+
+def test_the_same_state_and_the_same_inputs_give_the_same_verdict():
+    """判定的可复现性：判定不写状态，所以同一个状态可以反复问，答案不会漂移。"""
+    floor, _, _ = make_floor(now=1500.0)
+    state = State(last_open_ts=1400.0, her_ask_streak=1)
+
+    def ask_once():
+        return (floor.may_open(state, channel=Channel.TEXT),
+                floor.should_hand_back(state, channel=Channel.TEXT,
+                                       user_msg="今天加班到几点才回来"),
+                floor.line_rejected(state, "你好"))
+
+    first, second = ask_once(), ask_once()
+    assert first == second
+    assert first[0].allowed and first[1].allowed and first[2] == "empty_opener"
