@@ -40,4 +40,12 @@ def should_hand_back(state: State, *, channel: "Channel | str", user_msg: str,
     # 抽签之外（用户体感「说好的七成，实际只有三成」）。
     if int(state.her_ask_streak or 0) >= int(dials.max_ask_streak):
         return Verdict.deny("ask_streak", "连着两轮都问过了，这一轮必停")
+    # 抽签放最后：被上面任何一道挡下时都不消费随机数 —— 否则「被闸挡下」与
+    # 「抽签没中」在可复现性上会混成一个信号。
+    try:
+        roll_value = float(rng())
+    except Exception as exc:                      # noqa: BLE001
+        return Verdict.deny("rng_error", f"随机数注入抛了异常：{exc!r}")
+    if roll_value >= float(dials.hand_back_ratio(channel)):
+        return Verdict.deny("roll", "这一轮没抽中")
     return Verdict.allow()

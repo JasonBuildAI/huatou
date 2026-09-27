@@ -16,8 +16,10 @@ def roll(value):
 
 def check(state=None, *, channel=Channel.TEXT, user_msg="今天加班到几点才回来",
           dials=None, rng=0.0):
+    """`rng` 给一个数就当成「每次都返回它」，给一个可调用对象就直接用它。"""
     return should_hand_back(state or State(), channel=channel, user_msg=user_msg,
-                            dials=dials or Dials(), rng=roll(rng))
+                            dials=dials or Dials(),
+                            rng=rng if callable(rng) else roll(rng))
 
 
 @pytest.mark.parametrize("msg,units", [
@@ -55,3 +57,39 @@ def test_two_rounds_of_asking_in_a_row_stop_the_third():
 def test_the_ask_streak_limit_is_read_at_call_time():
     """上限现读：同一条状态，宿主把它抬到 3 就放行（硬约束 5）。"""
     assert check(State(her_ask_streak=2), dials=Dials(max_ask_streak=3)).allowed
+
+# ---------------------------------------------------------------- 抽签
+class CountingRng:
+    """假 rng：返回固定值，同时记下被调用了几次。"""
+
+    def __init__(self, value=0.0, error=None):
+        self.value = value
+        self.error = error
+        self.calls = 0
+
+    def __call__(self):
+        self.calls += 1
+        if self.error is not None:
+            raise self.error
+        return self.value
+
+
+def test_half_the_time_it_is_allowed_and_half_the_time_it_is_not():
+    """两个方向都被假 rng 钉死 —— 概率式指令服从度不稳，抽签必须可复现。"""
+    dials = Dials(hand_back_ratio_text=0.5)
+    assert check(dials=dials, rng=0.49).allowed
+    assert check(dials=dials, rng=0.5).reason == "roll"
+    assert check(dials=dials, rng=0.99).reason == "roll"
+
+
+def test_the_call_channel_ratio_is_higher():
+    """通话档 0.95：他每句都短、常被 VAD 切碎，机会本来就少。"""
+    dials = Dials()
+    assert check(channel=Channel.CALL, dials=dials, rng=0.94).allowed
+    assert check(channel=Channel.CALL, dials=dials, rng=0.96).reason == "roll"
+
+
+def test_a_broken_rng_degrades_to_not_handing_back_but_says_why():
+    denied = check(rng=CountingRng(error=RuntimeError("没有随机源")))
+    assert not denied.allowed and denied.reason == "rng_error"
+    assert "没有随机源" in denied.detail
