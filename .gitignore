@@ -1,0 +1,16 @@
+# 构建产物与缓存 —— 只挡「本地生成、不该进版本库」的东西。
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.venv/
+venv/
+
+# 编辑器与系统
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+desktop.ini
