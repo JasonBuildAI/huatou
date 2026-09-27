@@ -97,3 +97,31 @@ def test_a_useless_splitter_falls_back_to_the_whole_line(splitter):
     """切句器坏了、或者切不出东西，都不该把话吃掉：退回整条再判。"""
     assert _with_splitter(splitter) == "empty_opener"
     assert _with_splitter(splitter, "今天画了五版") == ""
+
+def test_the_same_sentence_said_again_is_rejected():
+    """同一句「今天画了五版」再发一遍，读起来就是她只剩这一句话。"""
+    state = State(recent_said=["上午在画廊，下午补了张小稿。"])
+    assert check("今天画了五版", state=State(recent_said=["今天画了五版"])) == "repeat"
+
+
+def test_repeats_are_compared_after_normalizing_both_sides():
+    state = State(recent_said=["今天画了五版。"])
+    assert check("今天画了五版！", state=state) == "repeat"
+    assert check("今天画了五版～", state=state) == "repeat"
+
+
+def test_a_different_sentence_is_not_a_repeat():
+    state = State(recent_said=["今天画了五版。"])
+    assert check("手有点酸", state=state) == ""
+
+
+def test_only_the_last_dedup_window_messages_are_compared():
+    old = "手有点酸"
+    state = State(recent_said=[old, "第二句", "第三句"])
+    assert check(old, state=state, dials=Dials(dedup_window=2)) == ""
+    assert check(old, state=state, dials=Dials(dedup_window=3)) == "repeat"
+
+
+def test_a_zero_window_turns_the_repeat_check_off():
+    state = State(recent_said=["今天画了五版"])
+    assert check("今天画了五版", state=state, dials=Dials(dedup_window=0)) == ""

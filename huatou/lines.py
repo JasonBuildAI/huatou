@@ -11,7 +11,7 @@ import re
 from .dials import Dials
 from .types import State
 
-__all__ = ["first_sentence", "line_rejected", "plain_text"]
+__all__ = ["first_sentence", "line_rejected", "plain_text", "said_sentences"]
 
 # 空转黑名单（24 条纯问候 / 空开场）。判据是**整句相等**：「你好呀，今天画室特别安静……」
 # 不算 —— 那是真的在说话。来历是反馈 6：用户原话是「不要频繁地说什么无意义的
@@ -50,6 +50,29 @@ def first_sentence(split_sentences, line: str) -> str:
     return parts[0] if parts else text.strip()
 
 
+def said_sentences(split_sentences, text) -> list:
+    """她某一条消息里**说过的每一句**（逐字重复那条判据的比对方）。"""
+    try:
+        parts = [str(s).strip() for s in split_sentences(str(text or ""))]
+    except Exception:                             # noqa: BLE001
+        return []
+    return [part for part in parts if part]
+
+
+def repeats_recent(state: State, plain: str, *, dials: Dials,
+                   split_sentences) -> bool:
+    """这一句是不是她最近说过的某一句（比她最近 `dedup_window` 条消息）。"""
+    window = int(dials.dedup_window or 0)
+    if window <= 0:
+        return False
+    recent = list(state.recent_said or [])[-window:]
+    for message in recent:
+        for sentence in said_sentences(split_sentences, message):
+            if plain_text(sentence) == plain:
+                return True
+    return False
+
+
 def line_rejected(state: State, line: str, *, dials: Dials, split_sentences) -> str:
     """这一句能不能出口：返回**理由串**，空串 = 放行。
 
@@ -62,4 +85,9 @@ def line_rejected(state: State, line: str, *, dials: Dials, split_sentences) -> 
     if plain in _EMPTY_OPENERS_PLAIN:
         # 整句相等才挡：「你好呀，今天画室特别安静……」不算，那是真的在说话。
         return "empty_opener"
+    if repeats_recent(state, plain, dials=dials, split_sentences=split_sentences):
+        # 逐字重复**按句比，不按条比**：历史里一条消息常常是好几句，而这里收到的
+        # 是切句之后的一句。两边必须过同一个切句器 —— 注入而不是内置，
+        # 是为了让「两边同源」这件事在类型上就成立。
+        return "repeat"
     return ""
