@@ -91,3 +91,33 @@ def test_to_dict_repairs_sloppy_values():
         "waiting_user": False, "her_ask_streak": 0, "recent_said": [],
         "last_activity_ts": 0.0,
     }
+
+def test_from_dict_never_raises_on_sloppy_input():
+    """失败姿态是放宽：认不出形状就取默认，绝不把异常抛给宿主。"""
+    from huatou.types import State
+
+    assert State.from_dict(None) == State()
+    assert State.from_dict("不是字典") == State()
+    assert State.from_dict({"streak": "坏了", "last_open_ts": float("nan"),
+                            "recent_said": 42, "her_ask_streak": []}) == State()
+
+
+def test_from_dict_reads_strings_and_numbers_as_written():
+    from huatou.types import State
+
+    s = State.from_dict({"streak": "3", "text_fired": "false",
+                         "waiting_user": "true", "recent_said": "一句话",
+                         "last_activity_ts": "12.5"})
+    assert s.streak == 3
+    assert s.text_fired is False
+    assert s.waiting_user is True
+    assert s.recent_said == ["一句话"]
+    assert s.last_activity_ts == 12.5
+
+
+def test_from_dict_ignores_keys_it_does_not_know():
+    """多余的键忽略掉 —— 别的模块往同一份状态里塞过东西也不会读崩。"""
+    from huatou.types import State
+
+    s = State.from_dict({"streak": 1, "reply_mode": "voice", "未来字段": [1, 2]})
+    assert s == State(streak=1)

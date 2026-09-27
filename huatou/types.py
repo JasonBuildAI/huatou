@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -99,3 +100,57 @@ class State:
             "recent_said": [str(x) for x in (self.recent_said or [])],
             "last_activity_ts": float(self.last_activity_ts or 0.0),
         }
+    @classmethod
+    def from_dict(cls, data) -> "State":
+        """从落盘 / 下发的形状读回来（`docs/rules.md` §6.4）。
+
+        失败姿态是**放宽，不是锁死**：认不出的键忽略、坏值取默认值、
+        连形状都不对（不是字典）就整份取默认 —— 绝不抛给宿主。
+        一个读不出来的字段让某个能力「永远卡住」，比读错一个数难查得多。
+        """
+        raw = data if isinstance(data, dict) else {}
+        state = cls()
+        state.streak = _as_int(raw.get("streak"), 0)
+        state.last_open_ts = _as_float(raw.get("last_open_ts"), 0.0)
+        state.text_fired = _as_bool(raw.get("text_fired"), False)
+        state.waiting_user = _as_bool(raw.get("waiting_user"), False)
+        state.her_ask_streak = _as_int(raw.get("her_ask_streak"), 0)
+        state.recent_said = _as_str_list(raw.get("recent_said"))
+        state.last_activity_ts = _as_float(raw.get("last_activity_ts"), 0.0)
+        return state
+def _as_int(value, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _as_float(value, default: float) -> float:
+    """时间戳只认有限数：NaN / inf 会让每一次比较都静默变成 False。"""
+    try:
+        out = float(value)
+    except (TypeError, ValueError):
+        return default
+    return out if math.isfinite(out) else default
+
+
+def _as_bool(value, default: bool) -> bool:
+    """字符串按它的意思读：「false」「0」这类字面量不许被当成真。"""
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in ("1", "true", "yes", "on"):
+            return True
+        if text in ("", "0", "false", "no", "off", "none", "null"):
+            return False
+        return default
+    if value is None:
+        return default
+    return bool(value)
+
+
+def _as_str_list(value) -> list:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, (list, tuple)):
+        return [str(x) for x in value]
+    return []
