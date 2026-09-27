@@ -43,3 +43,15 @@ def test_call_side_settles_for_two():
     short = "我喜欢"
     assert check(channel=Channel.CALL, user_msg=short).allowed
     assert check(channel=Channel.TEXT, user_msg=short).reason == "too_short"
+
+def test_two_rounds_of_asking_in_a_row_stop_the_third():
+    """连问闸的粒度是「一段」：问过还能再问一轮，第三轮必停。"""
+    assert check(State(her_ask_streak=1)).allowed
+    denied = check(State(her_ask_streak=2))
+    assert not denied.allowed and denied.reason == "ask_streak"
+    assert check(State(her_ask_streak=5)).reason == "ask_streak"
+
+
+def test_the_ask_streak_limit_is_read_at_call_time():
+    """上限现读：同一条状态，宿主把它抬到 3 就放行（硬约束 5）。"""
+    assert check(State(her_ask_streak=2), dials=Dials(max_ask_streak=3)).allowed

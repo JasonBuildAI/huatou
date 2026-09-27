@@ -35,4 +35,9 @@ def should_hand_back(state: State, *, channel: "Channel | str", user_msg: str,
     """
     if length_units(user_msg) < int(dials.hand_back_min_units(channel)):
         return Verdict.deny("too_short", "他这一句太短，没什么可接的")
+    # 连问闸：粒度是「一段」，不是「一轮」—— 问过还能再问一轮，连着两轮就必停一轮。
+    # 老闸按「上一轮问过就整轮不抽」算，真机 422 轮量出来它把 47.5% 的轮次挡在
+    # 抽签之外（用户体感「说好的七成，实际只有三成」）。
+    if int(state.her_ask_streak or 0) >= int(dials.max_ask_streak):
+        return Verdict.deny("ask_streak", "连着两轮都问过了，这一轮必停")
     return Verdict.allow()
